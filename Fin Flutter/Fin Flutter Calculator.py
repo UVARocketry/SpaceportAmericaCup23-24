@@ -19,6 +19,7 @@ temp_F = 59 - 0.00356 * alt_ft
 pres_lbspin2 = (2116 / 144) * ((temp_F + 459.7) / 518.6)**5.256
 sound_speed_ftps = (1.4 * 1716.59 * (temp_F + 460))**(1/2)
 fin_flutter_velocity_ftpsec = sound_speed_ftps * (shear_modulus_psi / ((1.337 * aspect_ratio**3 * pres_lbspin2 * (chord_ratio + 1)) / (2 * (aspect_ratio + 2) * (thickness_in / root_chord_in)**3)))**(1/2)
+print(fin_flutter_velocity_ftpsec)
 
 #Data from open rocket sim
 def read_csv_file(file_name):
@@ -29,8 +30,8 @@ def read_csv_file(file_name):
         csv_reader = csv.reader(csv_file)
         for row in csv_reader:
             if len(row) >= 2: 
-                open_rocket_alt.append(row[0])
-                open_rocket_velocity.append(row[1])
+                open_rocket_alt.append(float(row[0]))
+                open_rocket_velocity.append(float(row[1]))
 
     return open_rocket_alt, open_rocket_velocity
 
