@@ -4,35 +4,96 @@
 
 RocketSim::RocketSim()
 {
+    
     // default
     print_events = true;
-    stop_at_apogee = true;
     time_s = 0.0;
-    delta_time_s = 0.1;
+    delta_time_s = 0.01;
     position_m = Vector3d(0.0, 0.0, 0.0);
     velocity_mps = Vector3d(0.0, 0.0, 0.0);
 
-    mass_empty_motor_kg = 40.0/2.2;
-    mass_full_motor_kg = 60.0/2.2;
-    motor_burnout_time_s = 5.5;
+    using_motor_tf = true;
+    mass_empty_motor_kg = (44.1 + 7.35)/2.205;
+    mass_full_motor_kg = 63.9/2.205;
     const_thrust_tf = true;
+    motor_burnout_time_s = 5.3476;
     const_thrust_N = 1939.0;
 
-    const_aero_cd_tf = true;
-    const_aero_cd = 0.5;
-    set_diameter_in(6.0);
+    const_aero_cd = 0.557;
+    set_diameter_in(6.17);
 
-    const_grav_tf = true;
+    const_grav_tf = false;
+    ref_altitude_m = 4595.0;
+
+    set_rail(17.0 / 3.28084, 0.0, 86.0);
+
+    // initailize function must be called prior to running sim
+    initialize();
 }
 
-int RocketSim::step()
+void RocketSim::initialize()
 {
-    // calculate state derivatives
+    // mass
+    if (using_motor_tf)
+        mass_kg = mass_full_motor_kg;
+    else
+        mass_kg = mass_empty_motor_kg;
+
+    // motor
+    /*
+        TODO:
+            import variable motor thrust tables, if necessary
+            check for zero thrust
+    */
+    
+    // aero
+    /*
+        TODO:
+        import variable aero cd tables, if necessary
+        check for no table entries for variable aero cd
+    */  
+    
+    // rail
+    /*
+        TODO:
+            if not using rail, make sure taht initial AZ and EL are set
+    */
+
+
+    // state derivatives
+    calc_state_derivs();
+
+}
+
+
+void RocketSim::step()
+{
+
+    // integrate state derivatives
+    // TODO: write integ function
+    calc_state_integ();
+
+    // calculate new state derivatives
     // TODO: add error checking
     calc_state_derivs();
 
-    // integrate state derivatives
-    calc_state_integ();
+}
+
+void RocketSim::run_sim()
+{
+    if (stop_at_apogee)
+    {
+        while (time_s <= 0.1 || flight_path_angle_deg() > 0.0)
+        {
+            step();
+
+            // TODO: check for events and print
+
+            // TODO: record data somewhere
+        }
+
+        sim_done = true;
+    }
 }
 
 void RocketSim::calc_state_derivs()
@@ -82,18 +143,26 @@ void RocketSim::calc_aero_accel()
     }
 
     // calculate Q
-    calc_atmos_props();
-    double vel_mag_mps = velocity_mps.norm();
-    double dyn_pres = 0.5 * atmos_dens_kgpm3 * pow(vel_mag_mps, 2.0);
+    calc_atmos_props(); // need to update the local atmospheric properties first
 
-    // calculate force magnitude
-    double F_aero_mag = cd * dyn_pres * aero_ref_area_m3;
+    if (velocity_mps.norm() > 0.01)
+    {
+        double vel_mag_mps = velocity_mps.norm();
+        double dyn_pres = 0.5 * atmos_dens_kgpm3 * pow(vel_mag_mps, 2.0); 
 
-    // calculate direction of aero accel (opposite in direction of velocity)
-    Vector3d aero_accel_dir = -1.0 * (velocity_mps / vel_mag_mps);
+        // calculate force magnitude
+        double F_aero_mag = cd * dyn_pres * aero_ref_area_m3;
 
-    // calculate & update aero accel
-    aero_accel_mps2 = (F_aero_mag / mass_kg) * aero_accel_dir;
+        // calculate direction of aero accel (opposite in direction of velocity)
+        Vector3d aero_accel_dir = -1.0 * (velocity_mps / vel_mag_mps);
+
+        // calculate & update aero accel
+        aero_accel_mps2 = (F_aero_mag / mass_kg) * aero_accel_dir;
+    }
+    else
+    {
+        aero_accel_mps2 = Vector3d(0.0, 0.0, 0.0);
+    }
 }
 
 void RocketSim::calc_atmos_props()
@@ -105,12 +174,11 @@ void RocketSim::calc_atmos_props()
     // calculate height
     double height = position_m.z() + ref_altitude_m;
 
-    // don't burn me at the stake
     // all magic numbers are from the link above
     if (height <= 11000.0)
     {
-        atmos_temp_C = 15.04 - 0.00649 * height;
-        atmos_pres_KPa = 101.29 * pow(((atmos_temp_C + 273.1)/288.08), 5.256);
+        atmos_temp_C = ref_temp_C - 0.00649 * height;
+        atmos_pres_KPa = 101.29 * pow((atmos_temp_C + 273.1)/(ref_temp_C + 273.1), 5.256);
     }
     else if ((height > 11000.0) || (height <= 25000.0))
     {
@@ -167,12 +235,30 @@ void RocketSim::calc_thrust_accel()
         thrust_mag_N = 0.0;
     }
 
+    // for 3DOF motion, we assume that the thrust is in the same direction of velocity vector
+    // thus, if the velocity is approximately zero, we can't assume that holds
+    if (velocity_mps.norm() > 0.01)
+    {
+        // calculate thrust direction
+        Vector3d thrust_dir = velocity_mps / velocity_mps.norm();
 
-    // calculate thrust direction
-    Vector3d thrust_dir = velocity_mps / velocity_mps.norm();
-
-    // calc & update thrust
-    thrust_accel_mps2 = (thrust_mag_N / mass_kg) * thrust_dir;
+        // calc & update thrust
+        thrust_accel_mps2 = (thrust_mag_N / mass_kg) * thrust_dir;
+    }
+    else
+    {
+        // if using rail, the thrust is in line with the rail direction
+        if (using_rail_tf)
+        {
+            thrust_accel_mps2 = (thrust_mag_N / mass_kg) * rail_dir;
+        }
+        else
+        {
+            // if not using rail, thrust is in line with the initial
+            // direction
+            thrust_accel_mps2 = (thrust_mag_N / mass_kg) * initial_dir;
+        }
+    }
 }
 
 void RocketSim::calc_rail_accel()
@@ -250,21 +336,24 @@ void RocketSim::calc_mass_deriv()
 
 }
 
-
-
 void RocketSim::set_diameter_in(double diameter_in)
 {
-    aero_ref_area_m3 = M_PI * pow((diameter_in / (2*39.37)), 2.0);
+    aero_ref_area_m3 = PI * pow((diameter_in / (2*39.37)), 2.0);
 }
 
 void RocketSim::set_rail(double rail_len_m, double rail_az_deg, double rail_el_deg)
 {
+    using_rail_tf = true;
+    
     rail_length_m = rail_len_m;
     rail_azimuth_deg = rail_az_deg;
     rail_elevation_deg = rail_el_deg;
 
-    double rail_az_rad = (M_PI / 180) * rail_azimuth_deg;
-    double rail_el_rad = (M_PI / 180) * rail_elevation_deg;
+    // convert deg to rad
+    // note that the pitch rotation matrix below has a sign convention that is
+    // ccw == positive, but the user inputs cw == positive, so we need to flip its sign
+    double rail_az_rad = (PI / 180) * rail_azimuth_deg;
+    double rail_el_rad = -(PI / 180) * rail_elevation_deg;
 
 
     // we basically do a pitch, then a yaw of a unit x 3d vector 
@@ -281,4 +370,41 @@ void RocketSim::set_rail(double rail_len_m, double rail_az_deg, double rail_el_d
 
     rail_dir = yaw_rot_mat * (pitch_rot_mat * Vector3d(1.0, 0.0, 0.0));
 
+}
+
+void RocketSim::calc_state_integ()
+{
+    // Euler integration
+    // time
+    time_s = time_s + delta_time_s;
+
+    // position
+    position_m = position_m + velocity_mps * delta_time_s;
+
+    // velocity
+    velocity_mps = velocity_mps + acceleration_mps2 * delta_time_s;
+
+    // mass
+    mass_kg = mass_kg + mass_flow_rate_kgps * delta_time_s;
+}
+
+
+double RocketSim::flight_path_angle_deg()
+{
+    double xy_mag = sqrt(pow(velocity_mps.x(), 2.0) + pow(velocity_mps.y(), 2.0));
+    double z_mag = velocity_mps.z();
+    return atan(z_mag / xy_mag) * 180.0 / PI;
+}
+
+double RocketSim::get_altitude_ft()
+{
+    return position_m.z() * 3.28084;
+}
+
+void RocketSim::log_data()
+{
+    if (log_to_file)
+    {
+
+    }
 }
