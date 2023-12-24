@@ -46,8 +46,8 @@ class RocketSim {
         //      constant thrust
         double const_thrust_N;
         //      variable thrust
-        vector<double> motor_times_s;
-        vector<double> motor_thrust_N;
+        vector<double> motor_times_s = {0.0};
+        vector<double> motor_thrust_N = {0.0};
 
         // aero
         double aero_ref_area_m3{};
@@ -104,7 +104,7 @@ class RocketSim {
 
         void set_diameter_in(double);
         
-        //int import_motor(string);
+        void import_motor(string, int);
         //int import_aero_cd(string);
 
         void step();

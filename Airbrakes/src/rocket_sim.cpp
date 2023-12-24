@@ -1,6 +1,11 @@
 #include "rocket_sim.hpp"
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <string>
 
 RocketSim::RocketSim()
 {
@@ -23,7 +28,8 @@ RocketSim::RocketSim()
     set_diameter_in(6.17);
 
     const_grav_tf = false;
-    ref_altitude_m = 4595.0;
+    ref_altitude_m = 4595.0; // MSL Altitude at SA Launch Site
+    ref_temp_C = 35.0; // 95 deg F
 
     set_rail(17.0 / 3.28084, 0.0, 86.0);
 
@@ -213,10 +219,7 @@ void RocketSim::calc_grav_accel()
 }
 
 void RocketSim::calc_thrust_accel()
-{
-    // this assumes thrust is in the direction of motion
-    // TODO: fix determination of thrust direction when velocity is zero (or very low)
-
+{    
     // calculate thrust magnitude
     double thrust_mag_N;
     if (const_thrust_tf && time_s < motor_burnout_time_s)
@@ -226,8 +229,28 @@ void RocketSim::calc_thrust_accel()
     }
     else if (time_s < motor_burnout_time_s)
     {
-        // TODO: implement variable thrust
-        thrust_mag_N = 0.0;
+        // use binary search to find the thrust times interval the current time is in
+        int left, right, mid;
+        left = 0;
+        right = motor_times_s.size() - 1;
+        mid = right / 2;
+        while ((right - left) > 1)
+        {
+            if (time_s >= motor_times_s[mid])
+                // left now becomes mid
+                left = mid;
+            else
+                // right now becomes mid
+                right = mid;
+
+            // mid is recalculated
+            mid = (right + left) / 2;
+        }
+
+        // now we have the interval, so we can do linear interpolation
+        double slope_Nps = (motor_thrust_N[right] - motor_thrust_N[left])
+                            / (motor_times_s[right] - motor_times_s[left]);
+        thrust_mag_N = motor_thrust_N[left] + slope_Nps * (time_s - motor_times_s[left]);
     }
     else
     {
@@ -399,6 +422,46 @@ double RocketSim::flight_path_angle_deg()
 double RocketSim::get_altitude_ft()
 {
     return position_m.z() * 3.28084;
+}
+
+
+void RocketSim::import_motor(string filename, int data_start_line)
+{
+    using_motor_tf = true;
+    const_thrust_tf = false;
+
+    // https://www.geeksforgeeks.org/csv-file-management-using-c/
+
+    // file pointer
+    fstream fin;
+
+    // open file
+    fin.open(filename, ios::in);
+
+    // note that for .eng motor files, the first couple lines can be ignored
+    // so we skip over those here
+    string line;
+    for (int i = 0; i < data_start_line; i++)
+    {
+        getline(fin, line);
+    }
+    
+    // read data from the file
+    string time, thrust;
+    while (fin >> time)
+    {  
+        // time already read in
+        // so we read in thrust
+        fin >> thrust;
+
+        // convert time and thrust strings to doubles and push
+        // to times and thrust vectors
+        motor_times_s.push_back(stod(time));
+        motor_thrust_N.push_back(stod(thrust));
+    }
+
+    // set motor burnout time to last entry in motor times vector
+    motor_burnout_time_s = motor_times_s[motor_times_s.size() - 1];
 }
 
 void RocketSim::log_data()

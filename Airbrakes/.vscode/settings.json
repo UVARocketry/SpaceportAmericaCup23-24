@@ -1,6 +1,7 @@
 {
     "cmake.sourceDirectory": "C:/Code/SpaceportAmericaCup23-24/Airbrakes/src",
     "files.associations": {
-        "iostream": "cpp"
+        "iostream": "cpp",
+        "vector": "cpp"
     }
 }
