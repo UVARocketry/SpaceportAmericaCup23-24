@@ -6,12 +6,6 @@
 
 #IncludeRegexTransform: 
 
-/mnt/c/Code/SpaceportAmericaCup23-24/Airbrakes/src/main.cpp
-rocket_sim.hpp
-/mnt/c/Code/SpaceportAmericaCup23-24/Airbrakes/src/rocket_sim.hpp
-iostream
--
-
 /mnt/c/Code/SpaceportAmericaCup23-24/Airbrakes/src/rocket_sim.cpp
 rocket_sim.hpp
 /mnt/c/Code/SpaceportAmericaCup23-24/Airbrakes/src/rocket_sim.hpp

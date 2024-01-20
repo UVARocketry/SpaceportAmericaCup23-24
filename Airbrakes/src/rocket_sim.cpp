@@ -18,20 +18,20 @@ RocketSim::RocketSim()
     velocity_mps = Vector3d(0.0, 0.0, 0.0);
 
     using_motor_tf = true;
-    mass_empty_motor_kg = (44.1 + 7.35)/2.205;
-    mass_full_motor_kg = 63.9/2.205;
+    mass_empty_motor_kg = (43.8 + 7.35)/2.205;
+    mass_full_motor_kg = 64.5/2.205;
     const_thrust_tf = true;
     motor_burnout_time_s = 5.3476;
     const_thrust_N = 1939.0;
 
     const_aero_cd = 0.557;
-    set_diameter_in(6.17);
+    set_diameter_in(6.00); // OR says 6.17
 
     const_grav_tf = false;
-    ref_altitude_m = 4595.0; // MSL Altitude at SA Launch Site
-    ref_temp_C = 35.0; // 95 deg F
+    ref_altitude_m = 1400.556; // MSL Altitude at SA Launch Site, 4595.0 ft
+    //ref_temp_C = 35.0; // 95 deg F
 
-    set_rail(17.0 / 3.28084, 0.0, 86.0);
+    set_rail(17.0 / 3.28084, 0.0, 84.0);
 
     // initailize function must be called prior to running sim
     initialize();
@@ -135,6 +135,9 @@ void RocketSim::calc_aero_accel()
     //      Q = dynamic pressure
     //      S = aero reference area
 
+    // calculate Q
+    calc_atmos_props(); // need to update the local atmospheric properties first
+
     // calculate CD
     double cd;
     if (const_aero_cd_tf)
@@ -144,12 +147,28 @@ void RocketSim::calc_aero_accel()
     }
     else
     {
-        // TODO: implement variable drag coeff calc
-        cd = 0.5;
-    }
+        double mach = velocity_mps.norm() / atmos_snd_spd_mps;
 
-    // calculate Q
-    calc_atmos_props(); // need to update the local atmospheric properties first
+        // binary search for mach interval
+        int left = 0;
+        int right = aero_cd_mach.size() - 1;
+        int mid = right / 2;
+        while ((right - left) > 1) 
+        {
+            if (mach >= aero_cd_mach[mid])
+                // set left to mid
+                left = mid;
+            else
+                right = mid;
+
+            mid = (left + right) / 2;
+        }
+
+        // TODO: implement power on/off model
+        double cd_rate = (aero_cd_power_off[right] - aero_cd_power_off[left])
+                        / (aero_cd_mach[right] - aero_cd_mach[left]);
+        cd = aero_cd_power_off[left] + cd_rate * (mach - aero_cd_mach[left]);
+    }
 
     if (velocity_mps.norm() > 0.01)
     {
@@ -184,7 +203,7 @@ void RocketSim::calc_atmos_props()
     if (height <= 11000.0)
     {
         atmos_temp_C = ref_temp_C - 0.00649 * height;
-        atmos_pres_KPa = 101.29 * pow((atmos_temp_C + 273.1)/(ref_temp_C + 273.1), 5.256);
+        atmos_pres_KPa = 101.29 * pow((atmos_temp_C + 273.15)/(288.08), 5.256);
     }
     else if ((height > 11000.0) || (height <= 25000.0))
     {
@@ -197,9 +216,9 @@ void RocketSim::calc_atmos_props()
         atmos_pres_KPa = 2.488 * pow(((atmos_temp_C + 273.1)/288.08), -11.388);
     }
 
-    atmos_dens_kgpm3 = atmos_pres_KPa / (0.2869 * (atmos_temp_C + 273.1));
+    atmos_dens_kgpm3 = atmos_pres_KPa / (0.2869 * (atmos_temp_C + 273.15));
 
-    atmos_snd_spd_mps = sqrt(1.4 * 286 * (atmos_temp_C + 273.1));
+    atmos_snd_spd_mps = sqrt(1.4 * 286 * (atmos_temp_C + 273.15));
 }
 
 
@@ -221,7 +240,6 @@ void RocketSim::calc_grav_accel()
 void RocketSim::calc_thrust_accel()
 {    
     // calculate thrust magnitude
-    double thrust_mag_N;
     if (const_thrust_tf && time_s < motor_burnout_time_s)
     {
         // constant thrust
@@ -347,9 +365,8 @@ void RocketSim::calc_mass_deriv()
     }
     else if (time_s < motor_burnout_time_s)
     {
-        // TODO: implement variable mass flow rate model
-        mass_flow_rate_kgps = 0.0;
-        
+        // mass flow rate is proportional to the current thrust relative to the avg thrust
+        mass_flow_rate_kgps = (thrust_mag_N / avg_motor_thrust_N) * avg_mass_flow_rate_kgps;
     }
     else
     {
@@ -460,8 +477,78 @@ void RocketSim::import_motor(string filename, int data_start_line)
         motor_thrust_N.push_back(stod(thrust));
     }
 
+    // calculate total motor impulse using trapezoidal integration
+    // of motor thrust over time
+    // https://en.wikipedia.org/wiki/Trapezoidal_rule
+    total_motor_impulse_Ns = 0.0;
+    for (int i = 1; i < motor_times_s.size(); i++)
+    {
+        total_motor_impulse_Ns += (motor_times_s[i] - motor_times_s[i-1])
+                            * (motor_thrust_N[i] + motor_thrust_N[i-1]) / 2;
+    }
+
     // set motor burnout time to last entry in motor times vector
     motor_burnout_time_s = motor_times_s[motor_times_s.size() - 1];
+
+    // calculate average thrust
+    avg_motor_thrust_N = total_motor_impulse_Ns / motor_burnout_time_s;
+
+    // calculate average mass flow rate
+    avg_mass_flow_rate_kgps = (mass_full_motor_kg - mass_empty_motor_kg) / motor_burnout_time_s;
+}
+
+void RocketSim::set_variable_motor(string filename, int data_start_line,
+            double rocket_mass_empty_motor_kg, double rocket_mass_full_motor_kg)
+{
+    mass_empty_motor_kg = rocket_mass_empty_motor_kg;
+
+    mass_full_motor_kg = rocket_mass_full_motor_kg;
+
+    import_motor(filename, data_start_line);
+}
+
+void RocketSim::import_aero_cd(string filename, bool power_onoff_model_tf)
+{
+    const_aero_cd_tf = false;
+    using_power_onoff_aero_cd_tf = power_onoff_model_tf;
+
+    fstream fin;
+    fin.open(filename, ios::in);
+
+    // the first line is just a header
+    vector<string> row;
+    string line, word;
+    double mach, aoa, cd = 0.0;
+    getline(fin, line);
+
+    
+    while (fin >> line && (aoa < 0.01))
+    {
+        stringstream sstream(line);
+
+        // first column is the mach number
+        getline(sstream, word, ',');
+        mach = stod(word);
+        
+
+        // second column is angle of attack (ignore, should be zero)
+        getline(sstream, word, ',');
+        aoa = stod(word);
+
+        // third column is CD
+        getline(sstream, word, ',');
+        cd = stod(word);
+        
+
+        // ignore the rest
+
+        // only add mach and cd to tables if AOA is zero
+        if (aoa < 0.01)
+        {
+            aero_cd_mach.push_back(mach);
+            aero_cd_power_off.push_back(cd);
+        }
+    }
 }
 
 void RocketSim::log_data()

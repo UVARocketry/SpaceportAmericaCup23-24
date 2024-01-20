@@ -48,6 +48,10 @@ class RocketSim {
         //      variable thrust
         vector<double> motor_times_s = {0.0};
         vector<double> motor_thrust_N = {0.0};
+        double total_motor_impulse_Ns{};
+        double avg_motor_thrust_N{};
+        double avg_mass_flow_rate_kgps{};
+        double thrust_mag_N{};
 
         // aero
         double aero_ref_area_m3{};
@@ -56,9 +60,9 @@ class RocketSim {
         double const_aero_cd = 0.5;
         //      variable aero cd
         bool using_power_onoff_aero_cd_tf; // true if using CD power on/off model
-        vector<double> aero_cd_mach;
-        vector<double> aero_cd_power_off;
-        vector<double> aero_cd_power_on;
+        vector<double> aero_cd_mach = {0.0};
+        vector<double> aero_cd_power_off = {0.0};
+        vector<double> aero_cd_power_on = {0.0};
 
         // gravity properties
         bool const_grav_tf = false; // true if using constant gravity
@@ -90,9 +94,6 @@ class RocketSim {
         double initial_elevation_deg{};
         Vector3d initial_dir = Vector3d(0.0, 0.0, 0.0);
         
-        
-
-
         // CONSTRUCTORS
         // default constructor
         RocketSim();
@@ -105,7 +106,8 @@ class RocketSim {
         void set_diameter_in(double);
         
         void import_motor(string, int);
-        //int import_aero_cd(string);
+        void set_variable_motor(string, int, double, double);
+        void import_aero_cd(string, bool);
 
         void step();
         void run_sim();
