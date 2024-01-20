@@ -1,0 +1,5 @@
+-Isrc
+-Isrc/eigen
+-Wall
+-Wpedantic
+-Wextra

@@ -1,0 +1,6 @@
+-Isrc
+-Ieigen
+-Wall
+-Wpedantic
+-Wextra
+-std=c++20
