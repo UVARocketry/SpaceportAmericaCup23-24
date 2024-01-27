@@ -3,3 +3,4 @@
 *.pyc
 */.ccls-cache
 */.pio
+*/compile_flags.txt
