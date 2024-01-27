@@ -1,2 +1,3 @@
 
-int yeet();
+void initSensor();
+void runSensor();
