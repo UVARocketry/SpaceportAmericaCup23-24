@@ -8,7 +8,6 @@ struct GyroData {
     float gyroX;
     float gyroY;
     float gyroZ;
-
     float temp;
 };
 
