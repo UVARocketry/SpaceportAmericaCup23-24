@@ -1,3 +1,4 @@
+#include "sensor.h"
 #include <Adafruit_LSM6DSO32.h>
 int64_t lastTime = 0;
 
@@ -9,8 +10,7 @@ int64_t lastTime = 0;
 #define LSM_MOSI 11
 
 Adafruit_LSM6DSO32 dso32;
-void initSensor(void) {
-    Serial.begin(115200);
+void initSensor(SensorInitOptions options, SensorLogger& logger) {
     while (!Serial)
         delay(10); // will pause Zero, Leonardo, etc until serial console opens
 
@@ -143,7 +143,7 @@ void initSensor(void) {
     }
 }
 
-void runSensor() {
+GyroData runSensor(SensorReadOptions options, SensorLogger& logger) {
 
     //  /* Get a new normalized sensor event */
     sensors_event_t accel;
@@ -151,44 +151,14 @@ void runSensor() {
     sensors_event_t temp;
     dso32.getEvent(&accel, &gyro, &temp);
 
-    Serial.print("\t\tTemperature ");
-    Serial.print(temp.temperature);
-    Serial.println(" deg C");
-
-    /* Display the results (acceleration is measured in m/s^2) */
-    Serial.print("\t\tAccel X: ");
-    Serial.print(accel.acceleration.x);
-    Serial.print(" \tY: ");
-    Serial.print(accel.acceleration.y);
-    Serial.print(" \tZ: ");
-    Serial.print(accel.acceleration.z);
-    Serial.println(" m/s^2 ");
-
-    /* Display the results (rotation is measured in rad/s) */
-    Serial.print("\t\tGyro X: ");
-    Serial.print(gyro.gyro.x);
-    Serial.print(" \tY: ");
-    Serial.print(gyro.gyro.y);
-    Serial.print(" \tZ: ");
-    Serial.print(gyro.gyro.z);
-    Serial.println(" radians/s ");
-    Serial.println();
-
-    delay(100);
-
-    //  // serial plotter friendly format
-
-    //  Serial.print(temp.temperature);
-    //  Serial.print(",");
-
-    //  Serial.print(accel.acceleration.x);
-    //  Serial.print(","); Serial.print(accel.acceleration.y);
-    //  Serial.print(","); Serial.print(accel.acceleration.z);
-    //  Serial.print(",");
-
-    // Serial.print(gyro.gyro.x);
-    // Serial.print(","); Serial.print(gyro.gyro.y);
-    // Serial.print(","); Serial.print(gyro.gyro.z);
-    // Serial.println();
-    //  delayMicroseconds(10000);
+    GyroData data;
+    data.accX = accel.acceleration.x;
+    data.accY = accel.acceleration.y;
+    data.accZ = accel.acceleration.z;
+    data.gyroX = gyro.gyro.x;
+    data.gyroY = gyro.gyro.y;
+    data.gyroZ = gyro.gyro.z;
+    data.temp = temp.temperature;
+    return data;
 }
+SensorInterface<GyroData> gyroSensor(initSensor, runSensor);

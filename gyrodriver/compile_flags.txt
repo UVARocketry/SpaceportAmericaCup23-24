@@ -2,17 +2,15 @@
 -xc++
 -O2
 -fno-exceptions
--march=aarch64
 -felide-constructors
 -fno-rtti
--std=gnu++20
+-std=c++23
 -Wno-error=narrowing
 -fpermissive
 -fno-threadsafe-statics
 -Wall
 -ffunction-sections
 -fdata-sections
--mthumb
 -nostdlib
 
 -I/home/christopher-wood/projects/RocketCode/gyrodriver/include

@@ -1,22 +1,10 @@
+clang
 
--Wall
--ffunction-sections
--fdata-sections
--fno-exceptions
--felide-constructors
--fno-rtti
--std=gnu++14
--Wno-error=narrowing
--fpermissive
--fno-threadsafe-statics
--nostdlib
--xc++
--O2
+%c -Wall -ffunction-sections -fdata-sections -mthumb -mcpu=cortex-m7 -nostdlib -mfloat-abi=hard -mfpu=fpv5-d16 -O2
+%cpp -fno-exceptions -felide-constructors -fno-rtti -std=gnu++14 -Wno-error=narrowing -fpermissive -fno-threadsafe-statics -Wall -ffunction-sections -fdata-sections -mthumb -mcpu=cortex-m7 -nostdlib -mfloat-abi=hard -mfpu=fpv5-d16 -O2
 
--I/home/christopher-wood/projects/RocketCode/magnetdriver/include
--I/home/christopher-wood/projects/RocketCode/magnetdriver/src
--I/home/christopher-wood/.platformio/packages/framework-arduinoteensy/libraries/Wire
--I/home/christopher-wood/.platformio/packages/framework-arduinoteensy/libraries/Wire/utility
+-I/home/christopher-wood/projects/RocketCode/sensorInterface/include
+-I/home/christopher-wood/projects/RocketCode/sensorInterface/src
 -I/home/christopher-wood/.platformio/packages/framework-arduinoteensy/cores/teensy4
 -I/home/christopher-wood/.platformio/packages/framework-arduinoteensy/libraries/ADC
 -I/home/christopher-wood/.platformio/packages/framework-arduinoteensy/libraries/AccelStepper/src
@@ -109,6 +97,8 @@
 -I/home/christopher-wood/.platformio/packages/framework-arduinoteensy/libraries/UTFT
 -I/home/christopher-wood/.platformio/packages/framework-arduinoteensy/libraries/VirtualWire
 -I/home/christopher-wood/.platformio/packages/framework-arduinoteensy/libraries/WS2812Serial
+-I/home/christopher-wood/.platformio/packages/framework-arduinoteensy/libraries/Wire
+-I/home/christopher-wood/.platformio/packages/framework-arduinoteensy/libraries/Wire/utility
 -I/home/christopher-wood/.platformio/packages/framework-arduinoteensy/libraries/XBee
 -I/home/christopher-wood/.platformio/packages/framework-arduinoteensy/libraries/XPT2046_Touchscreen
 -I/home/christopher-wood/.platformio/packages/framework-arduinoteensy/libraries/i2c_t3
@@ -130,4 +120,3 @@
 -DCORE_TEENSY
 -DF_CPU=600000000
 -DLAYOUT_US_ENGLISH
-
