@@ -1,5 +1,5 @@
 
-#include "sensorInt.h"
+#include "../../sensorInterface/src/sensor.h"
 
 struct GyroData {
     float accX;

@@ -26,6 +26,7 @@ void loop() {
     Serial.print("Temperature ");
     Serial.print(data.temp);
     Serial.println(" deg C");
+    delay(1000);
 }
 
 int main() {
