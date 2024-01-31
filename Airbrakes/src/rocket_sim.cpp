@@ -1,560 +1,514 @@
 #include "rocket_sim.hpp"
 #define _USE_MATH_DEFINES
 #include <cmath>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <sstream>
-#include <vector>
 #include <string>
+#include <vector>
 
-RocketSim::RocketSim()
-{
-    
-    // default
-    print_events = true;
-    time_s = 0.0;
-    delta_time_s = 0.01;
-    position_m = Vector3d(0.0, 0.0, 0.0);
-    velocity_mps = Vector3d(0.0, 0.0, 0.0);
+RocketSim::RocketSim() {
 
-    using_motor_tf = true;
-    mass_empty_motor_kg = (43.8 + 7.35)/2.205;
-    mass_full_motor_kg = 64.5/2.205;
-    const_thrust_tf = true;
-    motor_burnout_time_s = 5.3476;
-    const_thrust_N = 1939.0;
+	// default
+	print_events = true;
+	time_s = 0.0;
+	delta_time_s = 0.01;
+	position_m = Vector3d(0.0, 0.0, 0.0);
+	velocity_mps = Vector3d(0.0, 0.0, 0.0);
 
-    const_aero_cd = 0.557;
-    set_diameter_in(6.00); // OR says 6.17
+	using_motor_tf = true;
+	mass_empty_motor_kg = (43.8 + 7.35) / 2.205;
+	mass_full_motor_kg = 64.5 / 2.205;
+	const_thrust_tf = true;
+	motor_burnout_time_s = 5.3476;
+	const_thrust_N = 1939.0;
 
-    const_grav_tf = false;
-    ref_altitude_m = 1400.556; // MSL Altitude at SA Launch Site, 4595.0 ft
-    //ref_temp_C = 35.0; // 95 deg F
+	const_aero_cd = 0.557;
+	set_diameter_in(6.00); // OR says 6.17
 
-    set_rail(17.0 / 3.28084, 0.0, 84.0);
+	const_grav_tf = false;
+	ref_altitude_m = 1400.556; // MSL Altitude at SA Launch Site, 4595.0 ft
+	// ref_temp_C = 35.0; // 95 deg F
 
-    // initailize function must be called prior to running sim
-    initialize();
+	set_rail(17.0 / 3.28084, 0.0, 84.0);
+
+	// initailize function must be called prior to running sim
+	initialize();
 }
 
-void RocketSim::initialize()
-{
-    // mass
-    if (using_motor_tf)
-        mass_kg = mass_full_motor_kg;
-    else
-        mass_kg = mass_empty_motor_kg;
+void RocketSim::initialize() {
+	// mass
+	if (using_motor_tf)
+		mass_kg = mass_full_motor_kg;
+	else
+		mass_kg = mass_empty_motor_kg;
 
-    // motor
-    /*
-        TODO:
-            import variable motor thrust tables, if necessary
-            check for zero thrust
-    */
-    
-    // aero
-    /*
-        TODO:
-        import variable aero cd tables, if necessary
-        check for no table entries for variable aero cd
-    */  
-    
-    // rail
-    /*
-        TODO:
-            if not using rail, make sure taht initial AZ and EL are set
-    */
+	// motor
+	/*
+	    TODO:
+	        import variable motor thrust tables, if necessary
+	        check for zero thrust
+	*/
 
+	// aero
+	/*
+	    TODO:
+	    import variable aero cd tables, if necessary
+	    check for no table entries for variable aero cd
+	*/
 
-    // state derivatives
-    calc_state_derivs();
+	// rail
+	/*
+	    TODO:
+	        if not using rail, make sure taht initial AZ and EL are set
+	*/
 
+	// state derivatives
+	calc_state_derivs();
 }
 
+void RocketSim::step() {
 
-void RocketSim::step()
-{
+	// integrate state derivatives
+	// TODO: write integ function
+	calc_state_integ();
 
-    // integrate state derivatives
-    // TODO: write integ function
-    calc_state_integ();
-
-    // calculate new state derivatives
-    // TODO: add error checking
-    calc_state_derivs();
-
+	// calculate new state derivatives
+	// TODO: add error checking
+	calc_state_derivs();
 }
 
-void RocketSim::run_sim()
-{
-    if (stop_at_apogee)
-    {
-        while (time_s <= 0.1 || flight_path_angle_deg() > 0.0)
-        {
-            step();
+void RocketSim::run_sim() {
+	if (stop_at_apogee) {
+		while (time_s <= 0.1 || flight_path_angle_deg() > 0.0) {
+			step();
 
-            // TODO: check for events and print
+			// TODO: check for events and print
 
-            // TODO: record data somewhere
-        }
+			// TODO: record data somewhere
+		}
 
-        sim_done = true;
-    }
+		sim_done = true;
+	}
 }
 
-void RocketSim::calc_state_derivs()
-{
-    // calculate aero acceleration
-    calc_aero_accel();
+void RocketSim::calc_state_derivs() {
+	// calculate aero acceleration
+	calc_aero_accel();
 
-    // calculate grav acceleration
-    calc_grav_accel();
+	// calculate grav acceleration
+	calc_grav_accel();
 
-    // calculate thrust acceleration
-    calc_thrust_accel();
+	// calculate thrust acceleration
+	calc_thrust_accel();
 
-    // calculate rail acceleration
-    calc_rail_accel();
+	// calculate rail acceleration
+	calc_rail_accel();
 
-    // calculate total acceleration
-    acceleration_mps2 = aero_accel_mps2 + grav_accel_mps2 +
-     thrust_accel_mps2 + rail_accel_mps2;   
+	// calculate total acceleration
+	acceleration_mps2 =
+		aero_accel_mps2 + grav_accel_mps2 + thrust_accel_mps2 + rail_accel_mps2;
 
-    // calculate mass flow rate 
-    calc_mass_deriv();
-
+	// calculate mass flow rate
+	calc_mass_deriv();
 }
 
-void RocketSim::calc_aero_accel()
-{
-    // this assumes aero force is in opposite direction of velocity
+void RocketSim::calc_aero_accel() {
+	// this assumes aero force is in opposite direction of velocity
 
-    // Aerodynamic Force
-    //      F_drag = CD * Q * S
-    //      CD = coefficient of drag
-    //      Q = dynamic pressure
-    //      S = aero reference area
+	// Aerodynamic Force
+	//      F_drag = CD * Q * S
+	//      CD = coefficient of drag
+	//      Q = dynamic pressure
+	//      S = aero reference area
 
-    // calculate Q
-    calc_atmos_props(); // need to update the local atmospheric properties first
+	// calculate Q
+	calc_atmos_props(); // need to update the local atmospheric properties first
 
-    // calculate CD
-    double cd;
-    if (const_aero_cd_tf)
-    {
-        // constant CD
-        cd = const_aero_cd;
-    }
-    else
-    {
-        double mach = velocity_mps.norm() / atmos_snd_spd_mps;
+	// calculate CD
+	Number cd;
+	if (const_aero_cd_tf) {
+		// constant CD
+		cd = const_aero_cd;
+	} else {
+		Number mach = velocity_mps.norm() / atmos_snd_spd_mps;
 
-        // binary search for mach interval
-        int left = 0;
-        int right = aero_cd_mach.size() - 1;
-        int mid = right / 2;
-        while ((right - left) > 1) 
-        {
-            if (mach >= aero_cd_mach[mid])
-                // set left to mid
-                left = mid;
-            else
-                right = mid;
+		// binary search for mach interval
+		int left = 0;
+		int right = aero_cd_mach.size() - 1;
+		int mid = right / 2;
+		while ((right - left) > 1) {
+			if (mach >= aero_cd_mach[mid])
+				// set left to mid
+				left = mid;
+			else
+				right = mid;
 
-            mid = (left + right) / 2;
-        }
+			mid = (left + right) / 2;
+		}
 
-        // TODO: implement power on/off model
-        double cd_rate = (aero_cd_power_off[right] - aero_cd_power_off[left])
-                        / (aero_cd_mach[right] - aero_cd_mach[left]);
-        cd = aero_cd_power_off[left] + cd_rate * (mach - aero_cd_mach[left]);
-    }
+		// TODO: implement power on/off model
+		Number cd_rate = (aero_cd_power_off[right] - aero_cd_power_off[left]) /
+		                 (aero_cd_mach[right] - aero_cd_mach[left]);
+		cd = aero_cd_power_off[left] + cd_rate * (mach - aero_cd_mach[left]);
+	}
 
-    if (velocity_mps.norm() > 0.01)
-    {
-        double vel_mag_mps = velocity_mps.norm();
-        double dyn_pres = 0.5 * atmos_dens_kgpm3 * pow(vel_mag_mps, 2.0); 
+	if (velocity_mps.norm() > 0.01) {
+		Number vel_mag_mps = velocity_mps.norm();
+		Number dyn_pres = 0.5 * atmos_dens_kgpm3 * pow(vel_mag_mps, 2.0);
 
-        // calculate force magnitude
-        double F_aero_mag = cd * dyn_pres * aero_ref_area_m3;
+		// calculate force magnitude
+		Number F_aero_mag = cd * dyn_pres * aero_ref_area_m3;
 
-        // calculate direction of aero accel (opposite in direction of velocity)
-        Vector3d aero_accel_dir = -1.0 * (velocity_mps / vel_mag_mps);
+		// calculate direction of aero accel (opposite in direction of velocity)
+		Vector3d aero_accel_dir = -1.0 * (velocity_mps / vel_mag_mps);
 
-        // calculate & update aero accel
-        aero_accel_mps2 = (F_aero_mag / mass_kg) * aero_accel_dir;
-    }
-    else
-    {
-        aero_accel_mps2 = Vector3d(0.0, 0.0, 0.0);
-    }
+		// calculate & update aero accel
+		aero_accel_mps2 = (F_aero_mag / mass_kg) * aero_accel_dir;
+	} else {
+		aero_accel_mps2 = Vector3d(0.0, 0.0, 0.0);
+	}
 }
 
-void RocketSim::calc_atmos_props()
-{
-    // uses the atmosphere model in the link below
-    // https://www.grc.nasa.gov/www/k-12/airplane/atmosmet.html
-    // https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/speed-of-sound-interactive/
+void RocketSim::calc_atmos_props() {
+	// uses the atmosphere model in the link below
+	// https://www.grc.nasa.gov/www/k-12/airplane/atmosmet.html
+	// https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/speed-of-sound-interactive/
 
-    // calculate height
-    double height = position_m.z() + ref_altitude_m;
+	// calculate height
+	Number height = position_m.z() + ref_altitude_m;
 
-    // all magic numbers are from the link above
-    if (height <= 11000.0)
-    {
-        atmos_temp_C = ref_temp_C - 0.00649 * height;
-        atmos_pres_KPa = 101.29 * pow((atmos_temp_C + 273.15)/(288.08), 5.256);
-    }
-    else if ((height > 11000.0) || (height <= 25000.0))
-    {
-        atmos_temp_C = -56.46;
-        atmos_pres_KPa = 22.65 * exp(1.73 - 0.000157 * height);
-    }
-    else
-    {
-        atmos_temp_C = -131.21 + 0.00299 * height;
-        atmos_pres_KPa = 2.488 * pow(((atmos_temp_C + 273.1)/288.08), -11.388);
-    }
+	// all magic numbers are from the link above
+	if (height <= 11000.0) {
+		atmos_temp_C = ref_temp_C - 0.00649 * height;
+		atmos_pres_KPa =
+			101.29 * pow((atmos_temp_C + 273.15) / (288.08), 5.256);
+	} else if ((height > 11000.0) || (height <= 25000.0)) {
+		atmos_temp_C = -56.46;
+		atmos_pres_KPa = 22.65 * exp(1.73 - 0.000157 * height);
+	} else {
+		atmos_temp_C = -131.21 + 0.00299 * height;
+		atmos_pres_KPa =
+			2.488 * pow(((atmos_temp_C + 273.1) / 288.08), -11.388);
+	}
 
-    atmos_dens_kgpm3 = atmos_pres_KPa / (0.2869 * (atmos_temp_C + 273.15));
+	atmos_dens_kgpm3 = atmos_pres_KPa / (0.2869 * (atmos_temp_C + 273.15));
 
-    atmos_snd_spd_mps = sqrt(1.4 * 286 * (atmos_temp_C + 273.15));
+	atmos_snd_spd_mps = sqrt(1.4 * 286 * (atmos_temp_C + 273.15));
 }
 
-
-void RocketSim::calc_grav_accel()
-{
-    if (const_grav_tf)
-    {
-        // constant gravity
-        grav_accel_mps2 = Vector3d(0.0, 0.0, const_grav_accel_mps2);
-    }
-    else
-    {
-        // Newton's Law of Gravitation!!
-        double grav_accel_mag_N = (grav_const * mass_earth_kg) / pow((radius_earth_m + ref_altitude_m + position_m.z()), 2.0);
-        grav_accel_mps2 = Vector3d(0.0, 0.0, -grav_accel_mag_N);
-    }
+void RocketSim::calc_grav_accel() {
+	if (const_grav_tf) {
+		// constant gravity
+		grav_accel_mps2 = Vector3d(0.0, 0.0, const_grav_accel_mps2);
+	} else {
+		// Newton's Law of Gravitation!!
+		Number grav_accel_mag_N =
+			(grav_const * mass_earth_kg) /
+			pow((radius_earth_m + ref_altitude_m + position_m.z()), 2.0);
+		grav_accel_mps2 = Vector3d(0.0, 0.0, -grav_accel_mag_N);
+	}
 }
 
-void RocketSim::calc_thrust_accel()
-{    
-    // calculate thrust magnitude
-    if (const_thrust_tf && time_s < motor_burnout_time_s)
-    {
-        // constant thrust
-        thrust_mag_N = const_thrust_N;
-    }
-    else if (time_s < motor_burnout_time_s)
-    {
-        // use binary search to find the thrust times interval the current time is in
-        int left, right, mid;
-        left = 0;
-        right = motor_times_s.size() - 1;
-        mid = right / 2;
-        while ((right - left) > 1)
-        {
-            if (time_s >= motor_times_s[mid])
-                // left now becomes mid
-                left = mid;
-            else
-                // right now becomes mid
-                right = mid;
+void RocketSim::calc_thrust_accel() {
+	// calculate thrust magnitude
+	if (const_thrust_tf && time_s < motor_burnout_time_s) {
+		// constant thrust
+		thrust_mag_N = const_thrust_N;
+	} else if (time_s < motor_burnout_time_s) {
+		// use binary search to find the thrust times interval the current time
+		// is in
+		int left, right, mid;
+		left = 0;
+		right = motor_times_s.size() - 1;
+		mid = right / 2;
+		while ((right - left) > 1) {
+			if (time_s >= motor_times_s[mid])
+				// left now becomes mid
+				left = mid;
+			else
+				// right now becomes mid
+				right = mid;
 
-            // mid is recalculated
-            mid = (right + left) / 2;
-        }
+			// mid is recalculated
+			mid = (right + left) / 2;
+		}
 
-        // now we have the interval, so we can do linear interpolation
-        double slope_Nps = (motor_thrust_N[right] - motor_thrust_N[left])
-                            / (motor_times_s[right] - motor_times_s[left]);
-        thrust_mag_N = motor_thrust_N[left] + slope_Nps * (time_s - motor_times_s[left]);
-    }
-    else
-    {
-        // burn time exceeded, so zero thrust
-        thrust_mag_N = 0.0;
-    }
+		// now we have the interval, so we can do linear interpolation
+		Number slope_Nps = (motor_thrust_N[right] - motor_thrust_N[left]) /
+		                   (motor_times_s[right] - motor_times_s[left]);
+		thrust_mag_N =
+			motor_thrust_N[left] + slope_Nps * (time_s - motor_times_s[left]);
+	} else {
+		// burn time exceeded, so zero thrust
+		thrust_mag_N = 0.0;
+	}
 
-    // for 3DOF motion, we assume that the thrust is in the same direction of velocity vector
-    // thus, if the velocity is approximately zero, we can't assume that holds
-    if (velocity_mps.norm() > 0.01)
-    {
-        // calculate thrust direction
-        Vector3d thrust_dir = velocity_mps / velocity_mps.norm();
+	// for 3DOF motion, we assume that the thrust is in the same direction of
+	// velocity vector thus, if the velocity is approximately zero, we can't
+	// assume that holds
+	if (velocity_mps.norm() > 0.01) {
+		// calculate thrust direction
+		Vector3d thrust_dir = velocity_mps / velocity_mps.norm();
 
-        // calc & update thrust
-        thrust_accel_mps2 = (thrust_mag_N / mass_kg) * thrust_dir;
-    }
-    else
-    {
-        // if using rail, the thrust is in line with the rail direction
-        if (using_rail_tf)
-        {
-            thrust_accel_mps2 = (thrust_mag_N / mass_kg) * rail_dir;
-        }
-        else
-        {
-            // if not using rail, thrust is in line with the initial
-            // direction
-            thrust_accel_mps2 = (thrust_mag_N / mass_kg) * initial_dir;
-        }
-    }
+		// calc & update thrust
+		thrust_accel_mps2 = (thrust_mag_N / mass_kg) * thrust_dir;
+	} else {
+		// if using rail, the thrust is in line with the rail direction
+		if (using_rail_tf) {
+			thrust_accel_mps2 = (thrust_mag_N / mass_kg) * rail_dir;
+		} else {
+			// if not using rail, thrust is in line with the initial
+			// direction
+			thrust_accel_mps2 = (thrust_mag_N / mass_kg) * initial_dir;
+		}
+	}
 }
 
-void RocketSim::calc_rail_accel()
-{
-    // a rail lets the rocket move freely (without opposing force)
-    // in its pointing direction until the rocket's position vector
-    // magnitude is greater than the rail length
+void RocketSim::calc_rail_accel() {
+	// a rail lets the rocket move freely (without opposing force)
+	// in its pointing direction until the rocket's position vector
+	// magnitude is greater than the rail length
 
-    // Note: we could probably improve this a bit by adding a static/kinetic
-    // friction component to the pointing direction
+	// Note: we could probably improve this a bit by adding a static/kinetic
+	// friction component to the pointing direction
 
-    if (using_rail_tf && !off_rail) {
-        
-        if (position_m.norm() > rail_length_m)
-        {
-            // set the off_rail flag to true
-            off_rail = true;
+	if (using_rail_tf && !off_rail) {
 
-            // and set rail accel to 0
-            rail_accel_mps2 = Vector3d(0.0, 0.0, 0.0);
-        }
-        else
-        {
-            // we want to find the acceleration without a rail
-            Vector3d accel_without_rail_mps2 = grav_accel_mps2 + aero_accel_mps2 + thrust_accel_mps2;
+		if (position_m.norm() > rail_length_m) {
+			// set the off_rail flag to true
+			off_rail = true;
 
-            // now we find the magnitude of the acceleration in the direction of the rail
-            // using the dot product
-            double accel_along_rail_mps2 = accel_without_rail_mps2.dot(rail_dir);
+			// and set rail accel to 0
+			rail_accel_mps2 = Vector3d(0.0, 0.0, 0.0);
+		} else {
+			// we want to find the acceleration without a rail
+			Vector3d accel_without_rail_mps2 =
+				grav_accel_mps2 + aero_accel_mps2 + thrust_accel_mps2;
 
-            // at this point, the magnitude of the acceleration in the rail direction
-            // could be positive or negative (thrust not yet high enough for rocket to move)
-            if (accel_along_rail_mps2 <= 0.0)
-            {
-                // the acceleration along the rail is negative
-                // so the rail needs to push up on the rocket to keep it stationary
-                rail_accel_mps2 = -accel_without_rail_mps2;
-            }
-            else
-            {
-                // the acceleration along the rail is positive
-                // so we limit the direction of motion of the rocket to the 
-                
-                // what this statement is doing is calculating the vector acceleration along the rail,
-                // subtracting that from the acceleration without the rail, which gives us the net acceleration
-                // thats NOT along the rail. We then negate this because we want the rail to oppose this motion 
-                rail_accel_mps2 = -(accel_without_rail_mps2 - (accel_along_rail_mps2 * rail_dir)); 
-            }
-        }
-    }
-    else {
-        rail_accel_mps2 = Vector3d(0.0, 0.0, 0.0);
-    }
+			// now we find the magnitude of the acceleration in the direction of
+			// the rail using the dot product
+			Number accel_along_rail_mps2 =
+				accel_without_rail_mps2.dot(rail_dir);
+
+			// at this point, the magnitude of the acceleration in the rail
+			// direction could be positive or negative (thrust not yet high
+			// enough for rocket to move)
+			if (accel_along_rail_mps2 <= 0.0) {
+				// the acceleration along the rail is negative
+				// so the rail needs to push up on the rocket to keep it
+				// stationary
+				rail_accel_mps2 = -accel_without_rail_mps2;
+			} else {
+				// the acceleration along the rail is positive
+				// so we limit the direction of motion of the rocket to the
+
+				// what this statement is doing is calculating the vector
+				// acceleration along the rail, subtracting that from the
+				// acceleration without the rail, which gives us the net
+				// acceleration thats NOT along the rail. We then negate this
+				// because we want the rail to oppose this motion
+				rail_accel_mps2 =
+					-(accel_without_rail_mps2 -
+				      (accel_along_rail_mps2 * rail_dir));
+			}
+		}
+	} else {
+		rail_accel_mps2 = Vector3d(0.0, 0.0, 0.0);
+	}
 }
 
-void RocketSim::calc_mass_deriv()
-{
-    if (const_thrust_tf && time_s < motor_burnout_time_s)
-    {
-       // constant thrust model for mass flow rate
-       // mass flow rate is just propellant weight divided by burntime
-       mass_flow_rate_kgps = (mass_full_motor_kg - mass_empty_motor_kg) / (motor_burnout_time_s); 
-    }
-    else if (time_s < motor_burnout_time_s)
-    {
-        // mass flow rate is proportional to the current thrust relative to the avg thrust
-        mass_flow_rate_kgps = (thrust_mag_N / avg_motor_thrust_N) * avg_mass_flow_rate_kgps;
-    }
-    else
-    {
-        // motor done burning
-        mass_flow_rate_kgps = 0.0;
-    }
-
+void RocketSim::calc_mass_deriv() {
+	if (const_thrust_tf && time_s < motor_burnout_time_s) {
+		// constant thrust model for mass flow rate
+		// mass flow rate is just propellant weight divided by burntime
+		mass_flow_rate_kgps =
+			(mass_full_motor_kg - mass_empty_motor_kg) / (motor_burnout_time_s);
+	} else if (time_s < motor_burnout_time_s) {
+		// mass flow rate is proportional to the current thrust relative to the
+		// avg thrust
+		mass_flow_rate_kgps =
+			(thrust_mag_N / avg_motor_thrust_N) * avg_mass_flow_rate_kgps;
+	} else {
+		// motor done burning
+		mass_flow_rate_kgps = 0.0;
+	}
 }
 
-void RocketSim::set_diameter_in(double diameter_in)
-{
-    aero_ref_area_m3 = PI * pow((diameter_in / (2*39.37)), 2.0);
+void RocketSim::set_diameter_in(Number diameter_in) {
+	aero_ref_area_m3 = PI * pow((diameter_in / (2 * 39.37)), 2.0);
 }
 
-void RocketSim::set_rail(double rail_len_m, double rail_az_deg, double rail_el_deg)
-{
-    using_rail_tf = true;
-    
-    rail_length_m = rail_len_m;
-    rail_azimuth_deg = rail_az_deg;
-    rail_elevation_deg = rail_el_deg;
+void RocketSim::set_rail(
+	Number rail_len_m, double rail_az_deg, double rail_el_deg
+) {
+	using_rail_tf = true;
 
-    // convert deg to rad
-    // note that the pitch rotation matrix below has a sign convention that is
-    // ccw == positive, but the user inputs cw == positive, so we need to flip its sign
-    double rail_az_rad = (PI / 180) * rail_azimuth_deg;
-    double rail_el_rad = -(PI / 180) * rail_elevation_deg;
+	rail_length_m = rail_len_m;
+	rail_azimuth_deg = rail_az_deg;
+	rail_elevation_deg = rail_el_deg;
 
+	// convert deg to rad
+	// note that the pitch rotation matrix below has a sign convention that is
+	// ccw == positive, but the user inputs cw == positive, so we need to flip
+	// its sign
+	Number rail_az_rad = (PI / 180) * rail_azimuth_deg;
+	Number rail_el_rad = -(PI / 180) * rail_elevation_deg;
 
-    // we basically do a pitch, then a yaw of a unit x 3d vector 
-    // https://msl.cs.uiuc.edu/planning/node102.html
+	// we basically do a pitch, then a yaw of a unit x 3d vector
+	// https://msl.cs.uiuc.edu/planning/node102.html
 
-    rail_dir = Vector3d(1.0, 0.0, 0.0);
+	rail_dir = Vector3d(1.0, 0.0, 0.0);
 
-    Matrix3d pitch_rot_mat; pitch_rot_mat << cos(rail_el_rad), 0.0, sin(rail_el_rad),
-                                             0.0,           1.0,             0.0,
-                                             -sin(rail_el_rad), 0.0, cos(rail_el_rad);
-    Matrix3d yaw_rot_mat; yaw_rot_mat << cos(rail_az_rad), -sin(rail_az_rad), 0.0,
-                                        sin(rail_az_rad), cos(rail_az_rad), 0.0,
-                                        0.0, 0.0, 1.0;
+	Matrix3d pitch_rot_mat;
+	pitch_rot_mat << cos(rail_el_rad), 0.0, sin(rail_el_rad), 0.0, 1.0, 0.0,
+		-sin(rail_el_rad), 0.0, cos(rail_el_rad);
+	Matrix3d yaw_rot_mat;
+	yaw_rot_mat << cos(rail_az_rad), -sin(rail_az_rad), 0.0, sin(rail_az_rad),
+		cos(rail_az_rad), 0.0, 0.0, 0.0, 1.0;
 
-    rail_dir = yaw_rot_mat * (pitch_rot_mat * Vector3d(1.0, 0.0, 0.0));
-
+	rail_dir = yaw_rot_mat * (pitch_rot_mat * Vector3d(1.0, 0.0, 0.0));
 }
 
-void RocketSim::calc_state_integ()
-{
-    // Euler integration
-    // time
-    time_s = time_s + delta_time_s;
+void RocketSim::calc_state_integ() {
+	// Euler integration
+	// time
+	time_s = time_s + delta_time_s;
 
-    // position
-    position_m = position_m + velocity_mps * delta_time_s;
+	// position
+	position_m = position_m + velocity_mps * delta_time_s;
 
-    // velocity
-    velocity_mps = velocity_mps + acceleration_mps2 * delta_time_s;
+	// velocity
+	velocity_mps = velocity_mps + acceleration_mps2 * delta_time_s;
 
-    // mass
-    mass_kg = mass_kg + mass_flow_rate_kgps * delta_time_s;
+	// mass
+	mass_kg = mass_kg + mass_flow_rate_kgps * delta_time_s;
 }
 
-
-double RocketSim::flight_path_angle_deg()
-{
-    double xy_mag = sqrt(pow(velocity_mps.x(), 2.0) + pow(velocity_mps.y(), 2.0));
-    double z_mag = velocity_mps.z();
-    return atan(z_mag / xy_mag) * 180.0 / PI;
+RocketSim::Number RocketSim::flight_path_angle_deg() {
+	Number xy_mag =
+		sqrt(pow(velocity_mps.x(), 2.0) + pow(velocity_mps.y(), 2.0));
+	Number z_mag = velocity_mps.z();
+	return atan(z_mag / xy_mag) * 180.0 / PI;
 }
 
-double RocketSim::get_altitude_ft()
-{
-    return position_m.z() * 3.28084;
+RocketSim::Number RocketSim::get_altitude_ft() {
+	return position_m.z() * 3.28084;
 }
 
+void RocketSim::import_motor(string filename, int data_start_line) {
+	using_motor_tf = true;
+	const_thrust_tf = false;
 
-void RocketSim::import_motor(string filename, int data_start_line)
-{
-    using_motor_tf = true;
-    const_thrust_tf = false;
+	// https://www.geeksforgeeks.org/csv-file-management-using-c/
 
-    // https://www.geeksforgeeks.org/csv-file-management-using-c/
+	// file pointer
+	fstream fin;
 
-    // file pointer
-    fstream fin;
+	// open file
+	fin.open(filename, ios::in);
 
-    // open file
-    fin.open(filename, ios::in);
+	if (!fin.is_open()) {
+		cout << "Error opening file " << filename << endl;
+		return;
+	}
 
-    // note that for .eng motor files, the first couple lines can be ignored
-    // so we skip over those here
-    string line;
-    for (int i = 0; i < data_start_line; i++)
-    {
-        getline(fin, line);
-    }
-    
-    // read data from the file
-    string time, thrust;
-    while (fin >> time)
-    {  
-        // time already read in
-        // so we read in thrust
-        fin >> thrust;
+	// note that for .eng motor files, the first couple lines can be ignored
+	// so we skip over those here
+	string line;
+	for (int i = 0; i < data_start_line; i++) {
+		getline(fin, line);
+	}
 
-        // convert time and thrust strings to doubles and push
-        // to times and thrust vectors
-        motor_times_s.push_back(stod(time));
-        motor_thrust_N.push_back(stod(thrust));
-    }
+	// read data from the file
+	string time, thrust;
+	while (fin >> time) {
+		// time already read in
+		// so we read in thrust
+		fin >> thrust;
 
-    // calculate total motor impulse using trapezoidal integration
-    // of motor thrust over time
-    // https://en.wikipedia.org/wiki/Trapezoidal_rule
-    total_motor_impulse_Ns = 0.0;
-    for (int i = 1; i < motor_times_s.size(); i++)
-    {
-        total_motor_impulse_Ns += (motor_times_s[i] - motor_times_s[i-1])
-                            * (motor_thrust_N[i] + motor_thrust_N[i-1]) / 2;
-    }
+		// convert time and thrust strings to Numbers and push
+		// to times and thrust vectors
+		motor_times_s.push_back(stod(time));
+		motor_thrust_N.push_back(stod(thrust));
+	}
 
-    // set motor burnout time to last entry in motor times vector
-    motor_burnout_time_s = motor_times_s[motor_times_s.size() - 1];
+	// calculate total motor impulse using trapezoidal integration
+	// of motor thrust over time
+	// https://en.wikipedia.org/wiki/Trapezoidal_rule
+	total_motor_impulse_Ns = 0.0;
+	for (size_t i = 1; i < motor_times_s.size(); i++) {
+		total_motor_impulse_Ns += (motor_times_s[i] - motor_times_s[i - 1]) *
+		                          (motor_thrust_N[i] + motor_thrust_N[i - 1]) /
+		                          2;
+	}
 
-    // calculate average thrust
-    avg_motor_thrust_N = total_motor_impulse_Ns / motor_burnout_time_s;
+	// set motor burnout time to last entry in motor times vector
+	motor_burnout_time_s = motor_times_s[motor_times_s.size() - 1];
 
-    // calculate average mass flow rate
-    avg_mass_flow_rate_kgps = (mass_full_motor_kg - mass_empty_motor_kg) / motor_burnout_time_s;
+	// calculate average thrust
+	avg_motor_thrust_N = total_motor_impulse_Ns / motor_burnout_time_s;
+
+	// calculate average mass flow rate
+	avg_mass_flow_rate_kgps =
+		(mass_full_motor_kg - mass_empty_motor_kg) / motor_burnout_time_s;
 }
 
-void RocketSim::set_variable_motor(string filename, int data_start_line,
-            double rocket_mass_empty_motor_kg, double rocket_mass_full_motor_kg)
-{
-    mass_empty_motor_kg = rocket_mass_empty_motor_kg;
+void RocketSim::set_variable_motor(
+	string filename, int data_start_line, Number rocket_mass_empty_motor_kg,
+	Number rocket_mass_full_motor_kg
+) {
+	mass_empty_motor_kg = rocket_mass_empty_motor_kg;
 
-    mass_full_motor_kg = rocket_mass_full_motor_kg;
+	mass_full_motor_kg = rocket_mass_full_motor_kg;
 
-    import_motor(filename, data_start_line);
+	import_motor(filename, data_start_line);
 }
 
-void RocketSim::import_aero_cd(string filename, bool power_onoff_model_tf)
-{
-    const_aero_cd_tf = false;
-    using_power_onoff_aero_cd_tf = power_onoff_model_tf;
+void RocketSim::import_aero_cd(string filename, bool power_onoff_model_tf) {
+	const_aero_cd_tf = false;
+	using_power_onoff_aero_cd_tf = power_onoff_model_tf;
 
-    fstream fin;
-    fin.open(filename, ios::in);
+	fstream fin;
+	fin.open(filename, ios::in);
 
-    // the first line is just a header
-    vector<string> row;
-    string line, word;
-    double mach, aoa, cd = 0.0;
-    getline(fin, line);
+	if (!fin.is_open()) {
+		cout << "Error opening file " << filename << endl;
+		return;
+	}
 
-    
-    while (fin >> line && (aoa < 0.01))
-    {
-        stringstream sstream(line);
+	// the first line is just a header
+	vector<string> row;
+	string line, word;
+	Number mach, aoa, cd = 0.0;
+	getline(fin, line);
 
-        // first column is the mach number
-        getline(sstream, word, ',');
-        mach = stod(word);
-        
+	while (fin >> line && (aoa < 0.01)) {
+		stringstream sstream(line);
 
-        // second column is angle of attack (ignore, should be zero)
-        getline(sstream, word, ',');
-        aoa = stod(word);
+		// first column is the mach number
+		getline(sstream, word, ',');
+		mach = stod(word);
 
-        // third column is CD
-        getline(sstream, word, ',');
-        cd = stod(word);
-        
+		// second column is angle of attack (ignore, should be zero)
+		getline(sstream, word, ',');
+		aoa = stod(word);
 
-        // ignore the rest
+		// third column is CD
+		getline(sstream, word, ',');
+		cd = stod(word);
 
-        // only add mach and cd to tables if AOA is zero
-        if (aoa < 0.01)
-        {
-            aero_cd_mach.push_back(mach);
-            aero_cd_power_off.push_back(cd);
-        }
-    }
+		// ignore the rest
+
+		// only add mach and cd to tables if AOA is zero
+		if (aoa < 0.01) {
+			aero_cd_mach.push_back(mach);
+			aero_cd_power_off.push_back(cd);
+		}
+	}
 }
 
-void RocketSim::log_data()
-{
-    if (log_to_file)
-    {
-
-    }
+void RocketSim::log_data() {
+	if (log_to_file) {
+	}
 }
