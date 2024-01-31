@@ -1,3 +1,4 @@
+// #define WProgram_h
 #include "sensor.h"
 void setup() {
     Serial.begin(115200);
