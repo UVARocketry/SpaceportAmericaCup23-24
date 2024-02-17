@@ -22,14 +22,39 @@ Adafruit_BMP3XX bmp;
 
 //End of BMP388 sensor definitions
 
+//Define the LED pins
+//A4
+#define LED_L1 18
+//A1
+#define LED_L2 15
+//A0
+#define LED_L3 14
+//A11
+#define LED_L4 25
+//CS3
+#define LED_L5 37
+//CS2
+#define LED_L6 36
+
 //Blink Example, Turns an LED on for one second, then off for one second, repeatedly.
 
-// the setup function runs once when you press reset or power the board
+// The setup function runs once when you press reset or power the board
 void setup() {
   // initialize digital pin LED_BUILTIN as an output.
   pinMode(LED_BUILTIN, OUTPUT);
 
   /*
+  //Setup the onboard LED's
+  pinMode(LED_L1, OUTPUT);
+  pinMode(LED_L2, OUTPUT);
+  pinMode(LED_L3, OUTPUT);
+  pinMode(LED_L4, OUTPUT);
+  pinMode(LED_L5, OUTPUT);
+  pinMode(LED_L6, OUTPUT);
+  */
+
+  /*
+  //Try to initialize the BMP388 sensor
   Serial.begin(115200);
   while (!Serial);
   Serial.println("Adafruit BMP388 / BMP390 test");
@@ -57,8 +82,56 @@ void loop() {
   delay(1000);                      // wait for a second
   printf("Hello World\n");
   Serial.println("World Hello");
+  delay(1000);
 
   /*
+  //Turn on the onboard LED's
+  digitalWrite(LED_L1, HIGH);
+  delay(1000);
+  digitalWrite(LED_L1, LOW);
+  delay(1000);
+  printf("LED L1 Turned ON");
+  delay(1000);
+
+  digitalWrite(LED_L2, HIGH);
+  delay(1000);
+  digitalWrite(LED_L2, LOW);
+  delay(1000);
+  printf("LED L2 Turned ON");
+  delay(1000);
+
+  digitalWrite(LED_L3, HIGH);
+  delay(1000);
+  digitalWrite(LED_L3, LOW);
+  delay(1000);
+  printf("LED L3 Turned ON");
+  delay(1000);
+
+  digitalWrite(LED_L4, HIGH);
+  delay(1000);
+  digitalWrite(LED_L4, LOW);
+  delay(1000);
+  printf("LED L4 Turned ON");
+  delay(1000);
+
+  digitalWrite(LED_L5, HIGH);
+  delay(1000);
+  digitalWrite(LED_L5, LOW);
+  delay(1000);
+  printf("LED L5 Turned ON");
+  delay(1000);
+
+  digitalWrite(LED_L6, HIGH);
+  delay(1000);
+  digitalWrite(LED_L6, LOW);
+  delay(1000);
+  printf("LED L6 Turned ON");
+  delay(1000);
+  */
+
+
+  /*
+  // Try to print the temperature, pressure, and altitude from the BMP388 sensor
   if (! bmp.performReading()) {
     Serial.println("Failed to perform reading :(");
     return;
