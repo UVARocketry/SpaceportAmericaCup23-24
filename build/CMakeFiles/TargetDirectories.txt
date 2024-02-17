@@ -1,0 +1,2 @@
+C:/Users/ediso/Desktop/SpaceportAmericaCup23-24/build/CMakeFiles/edit_cache.dir
+C:/Users/ediso/Desktop/SpaceportAmericaCup23-24/build/CMakeFiles/rebuild_cache.dir
