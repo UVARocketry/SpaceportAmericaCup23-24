@@ -5,6 +5,7 @@
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
+#include <Servo.h>
 
 #define BMP_SCK 13
 #define BMP_MISO 12
@@ -19,6 +20,7 @@
 #define SEALEVELPRESSURE_HPA (1013.25)
 
 Adafruit_BMP3XX bmp;
+Servo servo; 
 
 //End of BMP388 sensor definitions
 
@@ -43,6 +45,9 @@ void setup() {
   // initialize digital pin LED_BUILTIN as an output.
   pinMode(LED_BUILTIN, OUTPUT);
 
+  servo.attach(19);  // attaches the servo on pin 19 to the servo objectư
+  servo.write(0); 
+}
   /*
   //Setup the onboard LED's
   pinMode(LED_L1, OUTPUT);
@@ -72,7 +77,7 @@ void setup() {
   bmp.setIIRFilterCoeff(BMP3_IIR_FILTER_COEFF_3);
   bmp.setOutputDataRate(BMP3_ODR_50_HZ);
   */
-}
+
 
 // the loop function runs over and over again forever
 void loop() {
@@ -84,6 +89,18 @@ void loop() {
   Serial.println("World Hello");
   delay(1000);
 
+  for (int pos = 0; pos <= 180; pos += 1) {  // rotate slowly from 0 degrees to 180 degrees, one by one degree
+    // in steps of 1 degree
+    servo.write(pos);  // control servo to go to position in variable 'pos'
+    delay(10);         // waits 10ms for the servo to reach the position
+  }
+
+  for (int pos = 180; pos >= 0; pos -= 1) {  // rotate from 180 degrees to 0 degrees, one by one degree
+    servo.write(pos);                        // control servo to go to position in variable 'pos'
+    delay(10);                               // waits 10ms for the servo to reach the position
+  }
+
+}
   /*
   //Turn on the onboard LED's
   digitalWrite(LED_L1, HIGH);
@@ -150,5 +167,5 @@ void loop() {
 
   Serial.println();
   delay(2000);
-  */
-}
+*/
+
