@@ -1,64 +1,67 @@
+//Used for general definitions
 #include <Arduino.h>
+
+//Used for sensor definitions
+#include <Adafruit_Sensor.h>
+#include <Wire.h>
+#include <SPI.h>
+#define SCK 13
+#define MISO 12
+#define MOSI 11
 
 //Used for the BMP388 sensor definitions
 #include <Adafruit_BMP3XX.h>
-#include <Wire.h>
-#include <SPI.h>
-#include <Adafruit_Sensor.h>
-#include <Servo.h>
-
-#define BMP_SCK 13
-#define BMP_MISO 12
-#define BMP_MOSI 11
 #define BMP_CS 3
+#define SEALEVELPRESSURE_HPA (1013.25)
+Adafruit_BMP3XX bmp;
 
-//extra CS pins for the other sensors
+//Used for ADXL375 sensor definitions
+#include <Adafruit_ADXL375.h>
 #define ADXL375_CS 7
-#define LSM_CS 9
+Adafruit_ADXL375 accel = Adafruit_ADXL375(SCK, MISO, MOSI, ADXL375_CS, 12345);
+//Adafruit_ADXL375 accel = Adafruit_ADXL375(ADXL375_CS, &SPI, 12345);
+
+//Used for LIS3MDL sensor definitions
+#include <Adafruit_LIS3MDL.h>
 #define LIS3MDL_CS 5
 
-#define SEALEVELPRESSURE_HPA (1013.25)
+//Used for LSM6DSO sensor definitions
+#include <Adafruit_LSM6DSOX.h>
+#define LSM_CS 9
+Adafruit_LSM6DSOX sox;
 
-Adafruit_BMP3XX bmp;
+//Used for SPI Flash chip definitions
+#include <SdFat.h>
+#include <Adafruit_SPIFlash.h>
+#define SPIFlash_PIN 27
+Adafruit_FlashTransport_SPI flashTransport(SPIFlash_PIN, SPI);
+Adafruit_SPIFlash flash(&flashTransport);
+
+//Used for the Servo motor definitions
+#include <Servo.h>
+#define SERVO_PIN 19
 Servo servo; 
 
-//End of BMP388 sensor definitions
+//Define the onboard LED pins
+#define LED_L1 18 //A4
+#define LED_L2 15 //A1
+#define LED_L3 14 //A0
 
-//Define the LED pins
-//A4
-#define LED_L1 18
-//A1
-#define LED_L2 15
-//A0
-#define LED_L3 14
-//A11
-#define LED_L4 25
-//CS3
-#define LED_L5 37
-//CS2
-#define LED_L6 36
+#define LED_L4 25 //A11
+#define LED_L5 37 //CS3
+#define LED_L6 36 //CS2
 
-//Blink Example, Turns an LED on for one second, then off for one second, repeatedly.
 
 // The setup function runs once when you press reset or power the board
 void setup() {
+
   // initialize digital pin LED_BUILTIN as an output.
   pinMode(LED_BUILTIN, OUTPUT);
 
-  servo.attach(19);  // attaches the servo on pin 19 to the servo objectư
-  servo.write(0); 
 }
-  /*
-  //Setup the onboard LED's
-  pinMode(LED_L1, OUTPUT);
-  pinMode(LED_L2, OUTPUT);
-  pinMode(LED_L3, OUTPUT);
-  pinMode(LED_L4, OUTPUT);
-  pinMode(LED_L5, OUTPUT);
-  pinMode(LED_L6, OUTPUT);
-  */
 
   /*
+  //Setup for the BMP388 sensor
   //Try to initialize the BMP388 sensor
   Serial.begin(115200);
   while (!Serial);
@@ -66,7 +69,7 @@ void setup() {
 
   if (!bmp.begin_I2C()) {   // hardware I2C mode, can pass in address & alt Wire
   //if (! bmp.begin_SPI(BMP_CS)) {  // hardware SPI mode  
-  //if (! bmp.begin_SPI(BMP_CS, BMP_SCK, BMP_MISO, BMP_MOSI)) {  // software SPI mode
+  //if (! bmp.begin_SPI(BMP_CS, SCK, MISO, MOSI)) {  // software SPI mode
     Serial.println("Could not find a valid BMP3 sensor, check wiring!");
     while (1);
   }
@@ -76,8 +79,60 @@ void setup() {
   bmp.setPressureOversampling(BMP3_OVERSAMPLING_4X);
   bmp.setIIRFilterCoeff(BMP3_IIR_FILTER_COEFF_3);
   bmp.setOutputDataRate(BMP3_ODR_50_HZ);
+  //End of setup for BMP388 sensor
   */
 
+  /*
+  //Setup for the ADXL375 sensor
+  Serial.begin(115200);
+  while (!Serial);
+  Serial.println("ADXL375 Accelerometer Test"); Serial.println("");
+
+  // Initialise the sensor 
+  if(!accel.begin())
+  {
+    // There was a problem detecting the ADXL375 ... check your connections
+    Serial.println("Ooops, no ADXL375 detected ... Check your wiring!");
+    while(1);
+  }
+
+  // Range is fixed at +-200g
+
+  // Display some basic information on this sensor
+  accel.printSensorDetails();
+  //Display data rate function not included, if needed see example
+  //displayDataRate();
+  Serial.println("");
+  //End of setup for ADXL375 sensor
+  */
+
+  /*
+  //Setup for the onboard LED's
+  pinMode(LED_L1, OUTPUT);
+  pinMode(LED_L2, OUTPUT);
+  pinMode(LED_L3, OUTPUT);
+  pinMode(LED_L4, OUTPUT);
+  pinMode(LED_L5, OUTPUT);
+  pinMode(LED_L6, OUTPUT);
+  */
+
+  /*
+  //Setup for the Servo motor
+  servo.attach(SERVO_PIN);  // attaches the servo on pin 19 to the servo object
+  servo.write(0); 
+  */
+
+  /*
+  //Setup for the Serial Flash Chip sensor
+  Serial.println("Adafruit Serial Flash Info example");
+  flash.begin();
+
+  Serial.print("JEDEC ID: 0x");
+  Serial.println(flash.getJEDECID(), HEX);
+  Serial.print("Flash size: ");
+  Serial.print(flash.size() / 1024);
+  Serial.println(" KB");
+  */
 
 // the loop function runs over and over again forever
 void loop() {
@@ -86,9 +141,48 @@ void loop() {
   digitalWrite(LED_BUILTIN, LOW);   // turn the LED off by making the voltage LOW
   delay(1000);                      // wait for a second
   printf("Hello World\n");
-  Serial.println("World Hello");
   delay(1000);
+}
+  /*
+  //Code for the BMP388 sensor
+  if (! bmp.performReading()) {
+    Serial.println("Failed to perform reading :(");
+    return;
+  }
+  Serial.print("Temperature = ");
+  Serial.print(bmp.temperature);
+  Serial.println(" *C");
 
+  Serial.print("Pressure = ");
+  Serial.print(bmp.pressure / 100.0);
+  Serial.println(" hPa");
+
+  Serial.print("Approx. Altitude = ");
+  Serial.print(bmp.readAltitude(SEALEVELPRESSURE_HPA));
+  Serial.println(" m");
+
+  Serial.println();
+  delay(2000);
+  //End of code for the BMP388 sensor
+  */
+
+  /*
+  //Code for the ADXL375 sensor
+  // Get a new sensor event 
+  sensors_event_t event;
+  accel.getEvent(&event);
+
+  // Display the results (acceleration is measured in m/s^2)
+  Serial.print("X: "); Serial.print(event.acceleration.x); Serial.print("  ");
+  Serial.print("Y: "); Serial.print(event.acceleration.y); Serial.print("  ");
+  Serial.print("Z: "); Serial.print(event.acceleration.z); Serial.print("  ");Serial.println("m/s^2 ");
+  delay(500);
+  //End of code for the ADXL375 sensor
+  */
+
+
+  /*
+  //Code for the Servo motor
   for (int pos = 0; pos <= 180; pos += 1) {  // rotate slowly from 0 degrees to 180 degrees, one by one degree
     // in steps of 1 degree
     servo.write(pos);  // control servo to go to position in variable 'pos'
@@ -99,10 +193,11 @@ void loop() {
     servo.write(pos);                        // control servo to go to position in variable 'pos'
     delay(10);                               // waits 10ms for the servo to reach the position
   }
+  //End of code for the Servo motor
+  */
 
-}
   /*
-  //Turn on the onboard LED's
+  //Code for the Onboard LEDs
   digitalWrite(LED_L1, HIGH);
   delay(1000);
   digitalWrite(LED_L1, LOW);
@@ -144,28 +239,6 @@ void loop() {
   delay(1000);
   printf("LED L6 Turned ON");
   delay(1000);
+  //End of code for the Onboard LEDs
   */
-
-
-  /*
-  // Try to print the temperature, pressure, and altitude from the BMP388 sensor
-  if (! bmp.performReading()) {
-    Serial.println("Failed to perform reading :(");
-    return;
-  }
-  Serial.print("Temperature = ");
-  Serial.print(bmp.temperature);
-  Serial.println(" *C");
-
-  Serial.print("Pressure = ");
-  Serial.print(bmp.pressure / 100.0);
-  Serial.println(" hPa");
-
-  Serial.print("Approx. Altitude = ");
-  Serial.print(bmp.readAltitude(SEALEVELPRESSURE_HPA));
-  Serial.println(" m");
-
-  Serial.println();
-  delay(2000);
-*/
 
