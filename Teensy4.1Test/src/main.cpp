@@ -121,8 +121,8 @@ void setup() {
 
   /*
   //Setup for the LIS3MDL sensor
-    Serial.begin(115200);
-  while (!Serial) delay(10);     // will pause Zero, Leonardo, etc until serial console opens
+  Serial.begin(115200);
+  while (!Serial) delay(10);     
 
   Serial.println("Adafruit LIS3MDL test!");
   
@@ -478,4 +478,5 @@ void loop() {
   }
   //End of code for the GPS sensor
   */
+  //Serial.println("It works!");
 }
