@@ -166,27 +166,6 @@ void setup() {
   //End of setup for the LSM6DSO sensor
   */
 
-
-
-
-  /*
-  //Setup for the onboard LED's
-  pinMode(LED_L1, OUTPUT);
-  pinMode(LED_L2, OUTPUT);
-  pinMode(LED_L3, OUTPUT);
-  pinMode(LED_L4, OUTPUT);
-  pinMode(LED_L5, OUTPUT);
-  pinMode(LED_L6, OUTPUT);
-  //End of setup for the onboard LED's
-  */
-
-    /*
-  //Setup for the Servo motor
-  servo.attach(SERVO_PIN);  // attaches the servo on pin 19 to the servo object
-  servo.write(0); 
-  //End of setup for the Servo motor
-  */
-
   /*
   //Setup for the Serial Flash Chip sensor
   Serial.println("Adafruit Serial Flash Info example");
@@ -198,6 +177,24 @@ void setup() {
   Serial.print(flash.size() / 1024);
   Serial.println(" KB");
   //End of setup for the Serial Flash Chip sensor
+  */
+
+  /*
+  //Setup for the Servo motor
+  servo.attach(SERVO_PIN);  // attaches the servo on pin 19 to the servo object
+  servo.write(0); 
+  //End of setup for the Servo motor
+  */
+
+  /*
+  //Setup for the onboard LED's
+  pinMode(LED_L1, OUTPUT);
+  pinMode(LED_L2, OUTPUT);
+  pinMode(LED_L3, OUTPUT);
+  pinMode(LED_L4, OUTPUT);
+  pinMode(LED_L5, OUTPUT);
+  pinMode(LED_L6, OUTPUT);
+  //End of setup for the onboard LED's
   */
 }
 
@@ -304,9 +301,6 @@ void loop() {
   delay(100);
   //End of code for the LSM6DSO sensor
   */
-
-  
-
 
   /*
   //Code for the Servo motor
