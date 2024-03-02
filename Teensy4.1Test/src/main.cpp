@@ -18,12 +18,12 @@ Adafruit_BMP3XX bmp;
 //Used for ADXL375 sensor definitions
 #include <Adafruit_ADXL375.h>
 #define ADXL375_CS 7
-Adafruit_ADXL375 accel = Adafruit_ADXL375(SCK, MISO, MOSI, ADXL375_CS, 12345);
-//Adafruit_ADXL375 accel = Adafruit_ADXL375(ADXL375_CS, &SPI, 12345);
+Adafruit_ADXL375 accel = Adafruit_ADXL375(ADXL375_CS, &SPI, 12345);
 
 //Used for LIS3MDL sensor definitions
 #include <Adafruit_LIS3MDL.h>
 #define LIS3MDL_CS 5
+Adafruit_LIS3MDL lis3mdl;
 
 //Used for LSM6DSO sensor definitions
 #include <Adafruit_LSM6DSOX.h>
@@ -58,8 +58,6 @@ void setup() {
   // initialize digital pin LED_BUILTIN as an output.
   pinMode(LED_BUILTIN, OUTPUT);
 
-}
-
   /*
   //Setup for the BMP388 sensor
   //Try to initialize the BMP388 sensor
@@ -67,8 +65,8 @@ void setup() {
   while (!Serial);
   Serial.println("Adafruit BMP388 / BMP390 test");
 
-  if (!bmp.begin_I2C()) {   // hardware I2C mode, can pass in address & alt Wire
-  //if (! bmp.begin_SPI(BMP_CS)) {  // hardware SPI mode  
+  //if (!bmp.begin_I2C()) {   // hardware I2C mode, can pass in address & alt Wire
+  if (! bmp.begin_SPI(BMP_CS)) {  // hardware SPI mode  
   //if (! bmp.begin_SPI(BMP_CS, SCK, MISO, MOSI)) {  // software SPI mode
     Serial.println("Could not find a valid BMP3 sensor, check wiring!");
     while (1);
@@ -107,6 +105,71 @@ void setup() {
   */
 
   /*
+  //Setup for the LIS3MDL sensor
+    Serial.begin(115200);
+  while (!Serial) delay(10);     // will pause Zero, Leonardo, etc until serial console opens
+
+  Serial.println("Adafruit LIS3MDL test!");
+  
+  // Try to initialize!
+  //if (! lis3mdl.begin_I2C()) {          // hardware I2C mode, can pass in address & alt Wire
+  if (! lis3mdl.begin_SPI(LIS3MDL_CS)) {  // hardware SPI mode
+  //if (! lis3mdl.begin_SPI(LIS3MDL_CS, LIS3MDL_CLK, LIS3MDL_MISO, LIS3MDL_MOSI)) { // soft SPI
+    Serial.println("Failed to find LIS3MDL chip");
+    while (1) { delay(10); }
+  }
+  Serial.println("LIS3MDL Found!");
+
+  lis3mdl.setPerformanceMode(LIS3MDL_MEDIUMMODE);
+
+  lis3mdl.setOperationMode(LIS3MDL_CONTINUOUSMODE);
+
+  lis3mdl.setDataRate(LIS3MDL_DATARATE_155_HZ);
+  
+  lis3mdl.setRange(LIS3MDL_RANGE_4_GAUSS);
+
+  lis3mdl.setIntThreshold(500);
+  lis3mdl.configInterrupt(false, false, true, // enable z axis
+                          true, // polarity
+                          false, // don't latch
+                          true); // enabled!
+  //End of setup for LIS3MDL sensor
+  */
+
+  /*
+  //Setup for the LSM6DSO sensor
+  Serial.begin(115200);
+  while (!Serial)
+    delay(10); // will pause Zero, Leonardo, etc until serial console opens
+
+  Serial.println("Adafruit LSM6DSOX test!");
+
+  //if (!sox.begin_I2C()) {
+  if (!sox.begin_SPI(LSM_CS)) {
+    // if (!sox.begin_SPI(LSM_CS, LSM_SCK, LSM_MISO, LSM_MOSI)) {
+    Serial.println("Failed to find LSM6DSOX chip");
+    while (1) {
+      delay(10);
+    }
+  }
+
+  Serial.println("LSM6DSOX Found!");
+
+  // sox.setAccelRange(LSM6DS_ACCEL_RANGE_2_G);
+
+  // sox.setGyroRange(LSM6DS_GYRO_RANGE_250_DPS );
+
+  // sox.setAccelDataRate(LSM6DS_RATE_12_5_HZ);
+
+  // sox.setGyroDataRate(LSM6DS_RATE_12_5_HZ);
+  
+  //End of setup for the LSM6DSO sensor
+  */
+
+
+
+
+  /*
   //Setup for the onboard LED's
   pinMode(LED_L1, OUTPUT);
   pinMode(LED_L2, OUTPUT);
@@ -114,12 +177,14 @@ void setup() {
   pinMode(LED_L4, OUTPUT);
   pinMode(LED_L5, OUTPUT);
   pinMode(LED_L6, OUTPUT);
+  //End of setup for the onboard LED's
   */
 
-  /*
+    /*
   //Setup for the Servo motor
   servo.attach(SERVO_PIN);  // attaches the servo on pin 19 to the servo object
   servo.write(0); 
+  //End of setup for the Servo motor
   */
 
   /*
@@ -132,7 +197,10 @@ void setup() {
   Serial.print("Flash size: ");
   Serial.print(flash.size() / 1024);
   Serial.println(" KB");
+  //End of setup for the Serial Flash Chip sensor
   */
+}
+
 
 // the loop function runs over and over again forever
 void loop() {
@@ -179,6 +247,65 @@ void loop() {
   delay(500);
   //End of code for the ADXL375 sensor
   */
+
+  /*
+  //Code for the LIS3MDL sensor
+  lis3mdl.read();      // get X Y and Z data at once
+  // Then print out the raw data
+  Serial.print("\nX:  "); Serial.print(lis3mdl.x); 
+  Serial.print("  \tY:  "); Serial.print(lis3mdl.y); 
+  Serial.print("  \tZ:  "); Serial.println(lis3mdl.z); 
+
+  // Or....get a new sensor event, normalized to uTesla 
+  sensors_event_t event; 
+  lis3mdl.getEvent(&event);
+  // Display the results (magnetic field is measured in uTesla) 
+  Serial.print("\tX: "); Serial.print(event.magnetic.x);
+  Serial.print(" \tY: "); Serial.print(event.magnetic.y); 
+  Serial.print(" \tZ: "); Serial.print(event.magnetic.z); 
+  Serial.println(" uTesla ");
+
+  delay(100); 
+  Serial.println();
+  //End of code for the LIS3MDL sensor
+  */
+
+  /*
+  //Code for the LSM6DSO sensor
+  // Get a new normalized sensor event 
+  sensors_event_t accel;
+  sensors_event_t gyro;
+  sensors_event_t temp;
+  sox.getEvent(&accel, &gyro, &temp);
+
+  Serial.print("\t\tTemperature ");
+  Serial.print(temp.temperature);
+  Serial.println(" deg C");
+
+  // Display the results (acceleration is measured in m/s^2) 
+  Serial.print("\t\tAccel X: ");
+  Serial.print(accel.acceleration.x);
+  Serial.print(" \tY: ");
+  Serial.print(accel.acceleration.y);
+  Serial.print(" \tZ: ");
+  Serial.print(accel.acceleration.z);
+  Serial.println(" m/s^2 ");
+
+  // Display the results (rotation is measured in rad/s) 
+  Serial.print("\t\tGyro X: ");
+  Serial.print(gyro.gyro.x);
+  Serial.print(" \tY: ");
+  Serial.print(gyro.gyro.y);
+  Serial.print(" \tZ: ");
+  Serial.print(gyro.gyro.z);
+  Serial.println(" radians/s ");
+  Serial.println();
+
+  delay(100);
+  //End of code for the LSM6DSO sensor
+  */
+
+  
 
 
   /*
