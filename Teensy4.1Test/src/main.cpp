@@ -51,6 +51,18 @@ Servo servo;
 #define LED_L5 37 //CS3
 #define LED_L6 36 //CS2
 
+//Define the GPS sensor definitions
+#include <TinyGPSPlus.h>
+static const uint32_t GPSBaud = 9600;
+//For reference, not needed since we are using the hardware serial pins, not software serial
+//#define GPS_RXPIN 0
+//#define GPS_TXPIN 1
+#define GPSSerial Serial1
+TinyGPSPlus gps;
+
+//Define RFM95 Radio definitions
+//Not that important to test rn
+#define RFM95_CS 33
 
 // The setup function runs once when you press reset or power the board
 void setup() {
@@ -196,6 +208,19 @@ void setup() {
   pinMode(LED_L6, OUTPUT);
   //End of setup for the onboard LED's
   */
+  
+  /*
+  //Setup for the GPS sensor
+  Serial.begin(115200);
+  GPSSerial.begin(GPSBaud);
+
+  Serial.println(F("DeviceExample.ino"));
+  Serial.println(F("A simple demonstration of TinyGPSPlus with an attached GPS module"));
+  Serial.print(F("Testing TinyGPSPlus library v. ")); Serial.println(TinyGPSPlus::libraryVersion());
+  Serial.println();
+
+  //End of setup for the GPS sensor
+  */
 }
 
 
@@ -207,7 +232,7 @@ void loop() {
   delay(1000);                      // wait for a second
   printf("Hello World\n");
   delay(1000);
-}
+
   /*
   //Code for the BMP388 sensor
   if (! bmp.performReading()) {
@@ -363,3 +388,55 @@ void loop() {
   //End of code for the Onboard LEDs
   */
 
+  /*
+  //Code for the GPS sensor
+  // This sketch displays information every time a new sentence is correctly encoded.
+  while (GPSSerial.available() > 0)
+    if (gps.encode(GPSSerial.read())){
+      Serial.print(F("Location: ")); 
+    if (gps.location.isValid()){
+      Serial.print(gps.location.lat(), 6);
+      Serial.print(F(","));
+      Serial.print(gps.location.lng(), 6);
+    }
+    else{
+    Serial.print(F("INVALID"));
+    }
+    Serial.print(F("  Date/Time: "));
+    if (gps.date.isValid()){
+    Serial.print(gps.date.month());
+    Serial.print(F("/"));
+    Serial.print(gps.date.day());
+    Serial.print(F("/"));
+    Serial.print(gps.date.year());
+    }
+    else{
+    Serial.print(F("INVALID"));
+    }
+
+    Serial.print(F(" "));
+    if (gps.time.isValid()){
+    if (gps.time.hour() < 10) Serial.print(F("0"));
+    Serial.print(gps.time.hour());
+    Serial.print(F(":"));
+    if (gps.time.minute() < 10) Serial.print(F("0"));
+    Serial.print(gps.time.minute());
+    Serial.print(F(":"));
+    if (gps.time.second() < 10) Serial.print(F("0"));
+    Serial.print(gps.time.second());
+    Serial.print(F("."));
+    if (gps.time.centisecond() < 10) Serial.print(F("0"));
+    Serial.print(gps.time.centisecond());
+    }
+    else{
+    Serial.print(F("INVALID"));
+    }
+    Serial.println();
+    }
+  if (millis() > 5000 && gps.charsProcessed() < 10){
+    Serial.println(F("No GPS detected: check wiring."));
+    while(true);
+  }
+  //End of code for the GPS sensor
+  */
+}
