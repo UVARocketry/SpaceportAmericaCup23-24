@@ -51,6 +51,9 @@ Servo servo;
 #define LED_L5 37 //CS3
 #define LED_L6 36 //CS2
 
+//Define the Buzzer pin
+#define BUZZER_PIN 23
+
 //Define the GPS sensor definitions
 #include <TinyGPSPlus.h>
 static const uint32_t GPSBaud = 9600;
@@ -209,6 +212,14 @@ void setup() {
   //End of setup for the onboard LED's
   */
   
+  /*
+  //Setup for the Buzzer
+  pinMode(BUZZER_PIN, OUTPUT);
+  //Sound the buzzer at 1000 Hz for 1s
+  tone(BUZZER_PIN, 1000, 1000); 
+  //End of setup for the Buzzer
+  */
+
   /*
   //Setup for the GPS sensor
   Serial.begin(115200);
@@ -386,6 +397,34 @@ void loop() {
   printf("LED L6 Turned ON");
   delay(1000);
   //End of code for the Onboard LEDs
+  */
+
+  /*
+  //Code for the Buzzer
+  tone(buzzerPin, 440); // A4
+  delay(500);
+
+  tone(buzzerPin, 494); // B4
+  delay(500);
+
+  tone(buzzerPin, 523); // C4
+  delay(500);
+
+  tone(buzzerPin, 587); // D4
+  delay(500);
+
+  tone(buzzerPin, 659); // E4
+  delay(500);
+
+  tone(buzzerPin, 698); // F4
+  delay(500);
+
+  tone(buzzerPin, 784); // G4
+  delay(500);
+
+  noTone(buzzerPin);
+  delay(500);
+  //End of code for the Buzzer
   */
 
   /*
