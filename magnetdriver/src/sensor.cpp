@@ -5,20 +5,18 @@ Adafruit_LIS3MDL lis3mdl;
 #define LIS3MDL_MISO 12
 #define LIS3MDL_MOSI 11
 #define LIS3MDL_CS 5
-void setupMagnetometer(SensorInitOptions options, SensorLogger& logger) {
+void setupMagnetometer(SensorInitOptions options, const SensorLogger& logger) {
 
     logger.println("Adafruit LIS3MDL test!");
 
     // Try to initialize!
-    // if (! lis3mdl.begin_SPI(LIS3MDL_CS)) {  // hardware SPI mode
-    if (!lis3mdl.begin_SPI(
-            LIS3MDL_CS, LIS3MDL_CLK, LIS3MDL_MISO,
-            LIS3MDL_MOSI
-        )) { // soft SPI
+    if (!lis3mdl.begin_SPI(LIS3MDL_CS)) { // hardware SPI mode
+                                          // if (!lis3mdl.begin_SPI(
+        //         LIS3MDL_CS, LIS3MDL_CLK, LIS3MDL_MISO,
+        //         LIS3MDL_MOSI
+        //     )) { // soft SPI
         logger.println("Failed to find LIS3MDL chip");
-        while (1) {
-            delay(10);
-        }
+        return;
     }
     logger.println("LIS3MDL Found!");
 
@@ -123,8 +121,8 @@ void setupMagnetometer(SensorInitOptions options, SensorLogger& logger) {
     ); // enabled!
 }
 
-MagnetData runMagnetometer(SensorReadOptions options, SensorLogger& logger) {
-
+MagnetData
+runMagnetometer(SensorReadOptions options, const SensorLogger& logger) {
     sensors_event_t event;
     lis3mdl.getEvent(&event);
     MagnetData data;
@@ -134,4 +132,5 @@ MagnetData runMagnetometer(SensorReadOptions options, SensorLogger& logger) {
     return data;
 }
 
-SensorInterface<MagnetData> magnetSensor(setupMagnetometer, runMagnetometer);
+SensorInterface<MagnetData> magnetSensor =
+    SensorInterface<MagnetData>(setupMagnetometer, runMagnetometer);

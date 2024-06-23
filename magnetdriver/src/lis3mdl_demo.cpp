@@ -4,29 +4,42 @@
 #include "sensor.h"
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
+#include "Servo.h"
+Servo myservo; // create servo object to control a servo
+#define LED_L2 15
 
 void setup() {
+    myservo.attach(19);
+    pinMode(LED_L2, OUTPUT);
 
-    Serial.begin(115200);
-    while (!Serial)
-        delay(10); // will pause Zero, Leonardo, etc until serial console opens
-    magnetSensor.doInit(SensorInitOptions{});
+    digitalWrite(LED_L2, HIGH);
+
+    // Serial.begin(9600);
+    // // delay(10000);
+    // // while (!Serial)
+    // //     delay(10); // will pause Zero, Leonardo, etc until serial console
+    // //     opens
+    // Serial.println("Hello!");
+    // magnetSensor.doInit(SensorInitOptions{});
 }
+double step = 1;
+double minAng = 0;
+double maxAng = 180;
+double pos = 0;
 void loop() {
-
-    MagnetData data = magnetSensor.doRead(SensorReadOptions{});
-    Serial.print("X: ");
-    Serial.print(data.x);
-    Serial.print(" Y: ");
-    Serial.print(data.y);
-    Serial.print(" Z: ");
-    Serial.println(data.z);
-    delay(100);
-}
-
-int main() {
-    setup();
-    while (1) {
-        loop();
+    for (int pos = minAng; pos <= maxAng; pos += step) {
+        myservo.write(pos);
+        delay(15);
+    }
+    for (int pos = maxAng; pos >= minAng; pos -= step) {
+        myservo.write(pos);
+        delay(15);
     }
 }
+
+// int main() {
+//     setup();
+//     while (1) {
+//         loop();
+//     }
+// }

@@ -10,15 +10,14 @@ int64_t lastTime = 0;
 #define LSM_MOSI 11
 
 Adafruit_LSM6DSO32 dso32;
-void initSensor(SensorInitOptions options, SensorLogger& logger) {
+void initSensor(SensorInitOptions options, const SensorLogger& logger) {
+    logger.println("LSM6DSO32 test!");
 
     // if (!dso32.begin_I2C()) {
     // if (!dso32.begin_SPI(LSM_CS)) {
     if (!dso32.begin_SPI(LSM_CS, LSM_SCK, LSM_MISO, LSM_MOSI)) {
         logger.println("Failed to find LSM6DSO32 chip");
-        while (1) {
-            delay(10);
-        }
+        return;
     }
 
     logger.println("LSM6DSO32 Found!");
