@@ -24,21 +24,24 @@ def convert_to_xy(latitudes, longitudes):
     
     return x, y
 
+
+##from Coordinate_Plot.py
 def plot_3d(x, y, heights):
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
     scatter = ax.scatter(x, y, heights, c=heights, cmap='viridis')
     ax.set_xlabel('X (meters)')
     ax.set_ylabel('Y (meters)')
-    ax.set_zlabel('Height (meters)')
-    ax.set_title('3D Plot of Coordinates')
+    ax.set_zlabel('height (meters)')
+    ax.set_title('3D plot of coordinates')
     plt.colorbar(scatter, label='Height')
     plt.show()
+
 
 def plot_2d(x, y):
     plt.figure(figsize=(10, 8))
     plt.scatter(x, y, c=range(len(x)), cmap='viridis')
-    plt.colorbar(label='Point Index')
+    plt.colorbar(label='point index')
     plt.xlabel('X (meters)')
     plt.ylabel('Y (meters)')
     plt.title('2D Plot of Coordinates')
@@ -63,14 +66,46 @@ def main():
     
     plot_3d(x, y, heights)
     plot_2d(x, y)
-    
-    ###key data
-    print(f"Total number of coordinates: {len(x)}")
+
+    start_to_end_distance_xy = np.sqrt((x[-1] - x[0])**2 + (y[-1] - y[0])**2)
+
+    # key data
+    print(f"total numbof coordinates: {len(x)}")
     print(f"X-coordinate range: {x.min():.2f} to {x.max():.2f} meters")
     print(f"Y-coordinate range: {y.min():.2f} to {y.max():.2f} meters")
-    print(f"Height range: {min(heights):.2f} to {max(heights):.2f} meters")
-    print(f"Total distance traveled: {np.sum(np.sqrt(np.diff(x)**2 + np.diff(y)**2)):.2f} meters")
-    ## add more
+    print(f"height range: {min(heights):.2f} to {max(heights):.2f} meters")
+    
+    print(f"flat pure x-y coordinate space horizontal distance from start to end: {start_to_end_distance_xy:.2f} meters")
+
+    #####
+    ### I tried accounting for earth curvature but it dont work and its also def the exact same number
+    #####
+    start_to_end_distance_haversine =  haversine_distance(latitudes[0], longitudes[0], latitudes[-1], longitudes[-1])
+    print(f"ground distance from start to end w/ haversine formula for cuvrature: {start_to_end_distance_haversine:.2f} meters")
+
+    print(f"net altitude change: {heights[-1] - heights[0]:.2f} meters")
+    print(f"Maximum altitude reached: {max(heights):.2f} meters")
+    # add more ! or idk
+
+# if we wanna be extra sweaty
+# https://www.geeksforgeeks.org/haversine-formula-to-find-distance-between-two-points-on-a-sphere/
+def haversine_distance(lat1, lon1, lat2, lon2):
+    R = 6371000  # Earth radius in meters
+    
+    lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+    
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    
+    a = np.sin(dlat/2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon)**2
+    c = np.arctan2(np.sqrt(a), np.sqrt(a))
+    
+    return R * c
+
+
 
 if __name__ == "__main__":
     main()
+
+
+
