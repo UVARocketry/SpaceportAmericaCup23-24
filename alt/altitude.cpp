@@ -325,7 +325,7 @@ int main() {
         if (std::abs(err) > std::abs(worstErr)) {
             worstErr = err;
         }
-        if (std::abs(err) < 0.005) {
+        if (std::abs(err * heights[len - 1]) < 10) {
 
             if (convergedAt == 0) {
                 convergedAt = t;
@@ -338,11 +338,8 @@ int main() {
         } else {
             consistentConverge = 0;
         }
-        std::cout << "(" << t << ")";
-        std::cout << std::string(
-                         std::min((int)(std::abs(err) * 10000), 30), '#'
-                     )
-                  << std::endl;
+        std::cout << "(" << t << ")  ";
+        std::cout << err * heights[len - 1] << std::endl;
         t += 0.1;
     }
     std::cout << totalErr * 100 / (len) << std::endl;
