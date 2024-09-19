@@ -49,7 +49,7 @@ def plot_2d(x, y):
     plt.show()
 
 def main():
-    filename = 'coordinate_data_analysis/Featherweight Tracker Data 041324_fw2kml.kml'
+    filename = 'Featherweight Tracker Data 041324_fw2kml.kml'
 
     #print("Current Working Directory:", os.getcwd())
     #print("Files in the current directory:", os.listdir())
