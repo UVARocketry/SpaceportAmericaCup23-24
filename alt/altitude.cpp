@@ -9,7 +9,7 @@ struct State {
     double v;
 };
 
-double C_D = 0.6;
+double C_D = 0.60;
 const double A = M_PI * std::pow(0.1524 / 2, 2);
 double m = 24.446;
 double g = 9.82;
@@ -264,7 +264,9 @@ State getDeriv(double t, State prev) {
     double dens = rho(prev.y);
 
     State ret;
+    // ret.y is actually dy/dt
     ret.y = prev.v;
+    // ret.v is actually dv/dt
     ret.v = -g - 1.0 / (2.0 * m) * dens * A * C_D * std::pow(prev.v, 2);
 
     return ret;
@@ -321,28 +323,29 @@ int main() {
         s.y = h;
         double ap = getApogee(s);
         double err = (ap - heights[len - 1]) / heights[len - 1];
-        totalErr += err;
-        if (std::abs(err) > std::abs(worstErr)) {
-            worstErr = err;
-        }
-        if (std::abs(err * heights[len - 1]) < 10) {
-
-            if (convergedAt == 0) {
-                convergedAt = t;
+        if (t > 5) {
+            totalErr += std::abs(err);
+            if (std::abs(err) > std::abs(worstErr)) {
+                worstErr = err;
             }
-            consistentConverge++;
-            if (consistentConverge > 3 && consistentConvergeAt == 0) {
-                consistentConvergeAt = t;
-                authorityAt = getAltitudeAuthority(s);
+            if (std::abs(err * heights[len - 1]) < 15) {
+                if (convergedAt == 0) {
+                    convergedAt = t;
+                }
+                consistentConverge++;
+                if (consistentConverge > 3 && consistentConvergeAt == 0) {
+                    consistentConvergeAt = t;
+                    authorityAt = getAltitudeAuthority(s);
+                }
+            } else {
+                consistentConverge = 0;
             }
-        } else {
-            consistentConverge = 0;
+            std::cout << "(" << t << ")  ";
+            std::cout << err * heights[len - 1] << std::endl;
         }
-        std::cout << "(" << t << ")  ";
-        std::cout << err * heights[len - 1] << std::endl;
         t += 0.1;
     }
-    std::cout << totalErr * 100 / (len) << std::endl;
+    std::cout << "Average err: " << totalErr * 100 / (len) << std::endl;
     std::cout << "Worst error: " << worstErr * 100 << std::endl;
     std::cout << "Converged at: " << convergedAt << std::endl;
     std::cout << "Consistently converged at: " << consistentConvergeAt
